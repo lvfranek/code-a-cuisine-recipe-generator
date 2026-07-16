@@ -20,26 +20,29 @@ export default function RecipeCard({ recipe, index = 0 }) {
         <p className="recipe-desc">{recipe.description}</p>
 
         {recipe.nutrition && (
-          <div className="nutrition-row">
-            <div className="nutrition-item">
-              <span className="nutrition-value">{recipe.nutrition.calories}</span>
-              <span className="nutrition-label">kcal</span>
+          <div className="nutrition-block">
+            <div className="nutrition-row">
+              <div className="nutrition-item">
+                <span className="nutrition-value">{recipe.nutrition.calories}</span>
+                <span className="nutrition-label">kcal</span>
+              </div>
+              <div className="nutrition-divider" />
+              <div className="nutrition-item">
+                <span className="nutrition-value">{recipe.nutrition.protein}g</span>
+                <span className="nutrition-label">protein</span>
+              </div>
+              <div className="nutrition-divider" />
+              <div className="nutrition-item">
+                <span className="nutrition-value">{recipe.nutrition.carbs}g</span>
+                <span className="nutrition-label">carbs</span>
+              </div>
+              <div className="nutrition-divider" />
+              <div className="nutrition-item">
+                <span className="nutrition-value">{recipe.nutrition.fat}g</span>
+                <span className="nutrition-label">fat</span>
+              </div>
             </div>
-            <div className="nutrition-divider" />
-            <div className="nutrition-item">
-              <span className="nutrition-value">{recipe.nutrition.protein}g</span>
-              <span className="nutrition-label">protein</span>
-            </div>
-            <div className="nutrition-divider" />
-            <div className="nutrition-item">
-              <span className="nutrition-value">{recipe.nutrition.carbs}g</span>
-              <span className="nutrition-label">carbs</span>
-            </div>
-            <div className="nutrition-divider" />
-            <div className="nutrition-item">
-              <span className="nutrition-value">{recipe.nutrition.fat}g</span>
-              <span className="nutrition-label">fat</span>
-            </div>
+            <p className="nutrition-note">per portion · {recipe.portions} portion{recipe.portions !== 1 ? 's' : ''} total</p>
           </div>
         )}
 

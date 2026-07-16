@@ -475,6 +475,24 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-right: 4px;
+}
+
+.ingredient-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ingredient-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ingredient-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
 
 .ingredient-item {
@@ -1031,6 +1049,7 @@
   font-size: 0.88rem;
   color: var(--ink);
   line-height: 1.65;
+  align-items: baseline;
 }
 
 .recipe-instructions li::before {
@@ -1041,8 +1060,8 @@
   font-weight: 400;
   color: var(--accent);
   min-width: 18px;
-  margin-top: 1px;
   flex-shrink: 0;
+  line-height: 1.65;
 }
 
 .recipe-card--herb .recipe-instructions li::before { color: var(--herb); }
@@ -1064,22 +1083,7 @@
   max-width: 340px;
 }
 
-.footer-logo {
-  font-family: var(--font-d);
-  font-size: 1.05rem;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-
-.footer-logo em {
-  font-style: italic;
-  letter-spacing: 0.06em;
-  text-transform: none;
-  color: var(--accent);
-}
+/* .footer-logo and .footer-logo em are defined below with logo icon support */
 
 .footer-desc {
   font-size: 0.84rem;
@@ -1649,4 +1653,118 @@
   margin-top: 52px;
   padding-top: 28px;
   border-top: 1px solid var(--border);
+}
+
+/* ===== LOGO ICON ===== */
+.nav-logo-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-d);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.footer-logo em {
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--accent);
+}
+
+.footer-logo-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ===== NUTRITION BLOCK ===== */
+.nutrition-block {
+  margin-bottom: 14px;
+}
+
+.nutrition-note {
+  font-size: 0.62rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 7px;
+  opacity: 0.75;
+}
+
+/* ===== PAGINATION ===== */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 44px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination-btn {
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-b);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  min-width: 40px;
+  text-align: center;
+}
+
+.pagination-btn:hover:not(:disabled):not(.pagination-btn--active) {
+  background: var(--accent-lt);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pagination-btn--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ===== COOKBOOK EMPTY STATE ===== */
+.cookbook-empty-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
 }

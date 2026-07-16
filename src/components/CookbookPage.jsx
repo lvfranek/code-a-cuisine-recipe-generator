@@ -2,20 +2,32 @@ import { useState, useMemo } from 'react';
 import RecipeCard from './RecipeCard';
 import { MOCK_RECIPES } from '../api';
 
+const ITEMS_PER_PAGE = 10;
+
+const CUISINES = [
+  'American', 'Asian', 'French', 'Indian', 'Italian',
+  'Japanese', 'Mediterranean', 'Mexican', 'Middle Eastern',
+];
+
 const TIME_FILTERS = [
   { label: 'Any time', value: '' },
+  { label: 'Under 15 min', value: 15 },
   { label: 'Under 20 min', value: 20 },
   { label: 'Under 30 min', value: 30 },
   { label: 'Under 45 min', value: 45 },
+  { label: 'Under 60 min', value: 60 },
 ];
 
-const ALL_CUISINES = [...new Set(MOCK_RECIPES.map((r) => r.cuisine))].sort();
-const ALL_DIET_TAGS = [...new Set(MOCK_RECIPES.flatMap((r) => r.dietTags))].sort();
+const DIET_TAGS = [
+  'Dairy-Free', 'Gluten-Free', 'Keto', 'Low-Carb',
+  'Nut-Free', 'Paleo', 'Vegan', 'Vegetarian',
+];
 
-export default function CookbookPage() {
+export default function CookbookPage({ onNavigate }) {
   const [selectedCuisine, setSelectedCuisine] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedDiet, setSelectedDiet] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
     return MOCK_RECIPES.filter((r) => {
@@ -26,18 +38,25 @@ export default function CookbookPage() {
     });
   }, [selectedCuisine, selectedTime, selectedDiet]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
+  const setCuisine = (val) => { setSelectedCuisine(val); setCurrentPage(1); };
+  const setTime = (val) => { setSelectedTime(val); setCurrentPage(1); };
   const toggleDiet = (tag) => {
     setSelectedDiet((prev) =>
       prev.includes(tag) ? prev.filter((d) => d !== tag) : [...prev, tag]
     );
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = selectedCuisine || selectedTime || selectedDiet.length > 0;
-
   const clearFilters = () => {
     setSelectedCuisine('');
     setSelectedTime('');
     setSelectedDiet([]);
+    setCurrentPage(1);
   };
 
   return (
@@ -56,15 +75,15 @@ export default function CookbookPage() {
           <div className="chip-grid">
             <button
               className={`chip ${selectedCuisine === '' ? 'chip--active' : ''}`}
-              onClick={() => setSelectedCuisine('')}
+              onClick={() => setCuisine('')}
             >
               All
             </button>
-            {ALL_CUISINES.map((c) => (
+            {CUISINES.map((c) => (
               <button
                 key={c}
                 className={`chip ${selectedCuisine === c ? 'chip--active' : ''}`}
-                onClick={() => setSelectedCuisine(selectedCuisine === c ? '' : c)}
+                onClick={() => setCuisine(selectedCuisine === c ? '' : c)}
               >
                 {c}
               </button>
@@ -79,7 +98,7 @@ export default function CookbookPage() {
               <button
                 key={t.label}
                 className={`chip ${selectedTime === t.value ? 'chip--active' : ''}`}
-                onClick={() => setSelectedTime(t.value)}
+                onClick={() => setTime(t.value)}
               >
                 {t.label}
               </button>
@@ -90,7 +109,7 @@ export default function CookbookPage() {
         <div className="filter-group">
           <span className="filter-label">Dietary</span>
           <div className="chip-grid">
-            {ALL_DIET_TAGS.map((tag) => (
+            {DIET_TAGS.map((tag) => (
               <button
                 key={tag}
                 className={`chip chip--diet ${selectedDiet.includes(tag) ? 'chip--active' : ''}`}
@@ -104,27 +123,77 @@ export default function CookbookPage() {
 
         {hasActiveFilters && (
           <button className="btn btn--ghost cookbook-clear" onClick={clearFilters}>
-            Clear filters
+            Clear all filters
           </button>
         )}
       </div>
 
       {filtered.length === 0 ? (
         <div className="cookbook-empty">
-          <p className="cookbook-empty-title">No recipes match your filters.</p>
-          <p className="cookbook-empty-sub">Try adjusting or clearing your filters above.</p>
-          <button className="btn btn--ghost" onClick={clearFilters} style={{ marginTop: '16px' }}>
-            Clear filters
-          </button>
+          <p className="cookbook-empty-title">No recipes found</p>
+          <p className="cookbook-empty-sub">
+            No recipes match your current filters — but you can generate one yourself.
+          </p>
+          <div className="cookbook-empty-actions">
+            <button className="btn btn--primary" onClick={() => onNavigate('generator')}>
+              Go to Generator →
+            </button>
+            <button className="btn btn--ghost" onClick={clearFilters}>
+              Clear filters
+            </button>
+          </div>
         </div>
       ) : (
         <>
-          <p className="cookbook-count">{filtered.length} recipe{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="cookbook-count">
+            {filtered.length} recipe{filtered.length !== 1 ? 's' : ''}
+            {totalPages > 1 && ` · page ${safePage} of ${totalPages}`}
+          </p>
+
           <div className="recipe-grid">
-            {filtered.map((recipe, i) => (
-              <RecipeCard key={recipe.id} recipe={recipe} index={i} />
+            {paginated.map((recipe, i) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                index={(safePage - 1) * ITEMS_PER_PAGE + i}
+              />
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <nav className="pagination" aria-label="Recipe pages">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                aria-label="Previous page"
+              >
+                ← Prev
+              </button>
+
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    className={`pagination-btn ${n === safePage ? 'pagination-btn--active' : ''}`}
+                    onClick={() => setCurrentPage(n)}
+                    aria-current={n === safePage ? 'page' : undefined}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                aria-label="Next page"
+              >
+                Next →
+              </button>
+            </nav>
+          )}
         </>
       )}
     </section>

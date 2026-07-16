@@ -7,6 +7,7 @@ import ResultsPage from './components/ResultsPage';
 import CookbookPage from './components/CookbookPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
+import LogoIcon from './components/LogoIcon';
 import { generateRecipes } from './api';
 
 const DEFAULT_PREFS = {
@@ -65,6 +66,7 @@ function Navbar({ page, onNavigate }) {
             onClick={() => onNavigate('generator')}
             aria-label="Code a Cuisine — go to generator"
           >
+            <LogoIcon className="nav-logo-icon" />
             <span className="nav-logo">Code a <em>Cuisine</em></span>
           </button>
         </div>
@@ -88,7 +90,10 @@ function Footer({ onNavigate }) {
     <footer className="footer">
       <div className="footer-body">
         <div className="footer-brand">
-          <p className="footer-logo">Code a <em>Cuisine</em></p>
+          <div className="footer-logo">
+            <LogoIcon className="footer-logo-icon" />
+            <span>Code a <em>Cuisine</em></span>
+          </div>
           <p className="footer-desc">
             Turn your pantry into a plate — AI-powered recipes crafted
             from the ingredients you already have at home.
@@ -207,7 +212,7 @@ export default function App() {
       {isCookbook && (
         <main className="app-main">
           <div className="screen-enter screen-enter--cookbook">
-            <CookbookPage />
+            <CookbookPage onNavigate={handleNavigate} />
           </div>
         </main>
       )}
