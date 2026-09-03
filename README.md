@@ -4,12 +4,11 @@ Tell the app what's in your kitchen and it gives you three recipes you can cook
 with what you already have — full ingredient lists and plain, step-by-step
 instructions written so anyone can follow them.
 
+![Code a Cuisine](public/code-a-cuisine.jpeg)
+
 ## 🎞️ Live Demo
 
 **[code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)**
-
-<!-- Add a screenshot or short GIF here for the portfolio version:
-![Code a Cuisine](docs/screenshot.png) -->
 
 ## 🚀 Features
 
