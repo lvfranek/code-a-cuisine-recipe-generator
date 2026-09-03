@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import RecipeCard from './RecipeCard';
-import { MOCK_RECIPES } from '../api';
+import { getSaved } from '../cookbook';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -28,15 +28,26 @@ export default function CookbookPage({ onNavigate }) {
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedDiet, setSelectedDiet] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [saved, setSaved] = useState(getSaved);
+
+  useEffect(() => {
+    const sync = () => setSaved(getSaved());
+    window.addEventListener('cookbook-change', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('cookbook-change', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   const filtered = useMemo(() => {
-    return MOCK_RECIPES.filter((r) => {
+    return saved.filter((r) => {
       if (selectedCuisine && r.cuisine !== selectedCuisine) return false;
       if (selectedTime && parseInt(r.cookTime) > selectedTime) return false;
       if (selectedDiet.length && !selectedDiet.every((d) => r.dietTags.includes(d))) return false;
       return true;
     });
-  }, [selectedCuisine, selectedTime, selectedDiet]);
+  }, [saved, selectedCuisine, selectedTime, selectedDiet]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
@@ -64,7 +75,7 @@ export default function CookbookPage({ onNavigate }) {
       <div className="cookbook-hero">
         <h1 id="cookbook-title" className="step-title">The Recipe Book</h1>
         <p className="cookbook-desc">
-          Every recipe crafted by Code a Cuisine — all in one place. Filter by cuisine,
+          Every recipe you've saved — all in one place. Filter by cuisine,
           cooking time, or dietary preference to find exactly what you're after.
         </p>
       </div>
@@ -130,17 +141,23 @@ export default function CookbookPage({ onNavigate }) {
 
       {filtered.length === 0 ? (
         <div className="cookbook-empty">
-          <p className="cookbook-empty-title">No recipes found</p>
+          <p className="cookbook-empty-title">
+            {saved.length === 0 ? 'Your Recipe Book is empty' : 'No recipes found'}
+          </p>
           <p className="cookbook-empty-sub">
-            No recipes match your current filters — but you can generate one yourself.
+            {saved.length === 0
+              ? 'Generate some recipes, then tap “Save” on any card to keep it here.'
+              : 'No saved recipes match your current filters.'}
           </p>
           <div className="cookbook-empty-actions">
             <button className="btn btn--primary" onClick={() => onNavigate('generator')}>
               Go to Generator →
             </button>
-            <button className="btn btn--ghost" onClick={clearFilters}>
-              Clear filters
-            </button>
+            {hasActiveFilters && (
+              <button className="btn btn--ghost" onClick={clearFilters}>
+                Clear filters
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -153,7 +170,7 @@ export default function CookbookPage({ onNavigate }) {
           <div className="recipe-grid">
             {paginated.map((recipe, i) => (
               <RecipeCard
-                key={recipe.id}
+                key={recipe.key || recipe.id}
                 recipe={recipe}
                 index={(safePage - 1) * ITEMS_PER_PAGE + i}
               />

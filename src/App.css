@@ -72,18 +72,21 @@
 }
 
 .navbar-inner {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
-  max-width: 1100px;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 1248px; /* 1200 hero content column + 2×24 gutter, matches .app-main */
   margin: 0 auto;
-  padding: 0 28px;
+  padding: 0 24px;
   height: 62px;
 }
 
-.navbar-left  { justify-self: start; }
-.navbar-center { justify-self: center; }
-.navbar-right { justify-self: end; }
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 .nav-logo {
   font-family: var(--font-d);
@@ -93,6 +96,7 @@
   text-transform: uppercase;
   color: var(--ink);
   user-select: none;
+  white-space: nowrap;
 }
 
 .nav-logo em {
@@ -255,6 +259,32 @@
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.6;
+}
+
+.step-hint {
+  margin-top: 40px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.step-hint + .step-footer {
+  margin-top: 12px;
+}
+
+.step-error {
+  margin-top: 40px;
+  padding: 12px 16px;
+  border: 1px solid var(--error);
+  border-radius: var(--r-sm);
+  background: rgba(181, 38, 30, 0.06);
+  color: var(--error);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.step-error + .step-footer {
+  margin-top: 12px;
 }
 
 .step-footer {
@@ -428,6 +458,10 @@
   flex: 0 0 96px;
 }
 
+.field--qty {
+  flex: 0 0 68px;
+}
+
 .field input[type="text"],
 .field input[type="number"],
 .field select {
@@ -448,6 +482,16 @@
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 30px;
+}
+
+.field input[type="number"]::-webkit-outer-spin-button,
+.field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.field input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .field input:focus,
@@ -618,6 +662,7 @@
 .stepper-field {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -842,6 +887,10 @@
   text-transform: uppercase;
 }
 
+.results-reset {
+  margin-top: 20px;
+}
+
 .recipe-grid {
   display: flex;
   flex-direction: column;
@@ -870,13 +919,6 @@
   padding: 22px 24px 0;
 }
 
-.recipe-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 13px;
-}
-
 .recipe-cuisine {
   font-size: 0.68rem;
   font-weight: 500;
@@ -899,8 +941,15 @@
 }
 
 .recipe-time {
-  font-size: 0.8rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface);
   color: var(--muted);
+  border: 1px solid var(--border);
 }
 
 .recipe-name {
@@ -986,6 +1035,42 @@
 .recipe-expand-btn:hover {
   background: var(--border);
   color: var(--ink);
+}
+
+.recipe-card-actions {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--border);
+}
+
+.recipe-card-actions .recipe-expand-btn {
+  flex: 1;
+  border-top: none;
+}
+
+.recipe-save-btn {
+  flex-shrink: 0;
+  padding: 13px 20px;
+  background: var(--surface);
+  border: none;
+  border-left: 1px solid var(--border);
+  font-family: var(--font-b);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.recipe-save-btn:hover {
+  background: var(--border);
+  color: var(--ink);
+}
+
+.recipe-save-btn--saved {
+  color: var(--accent, var(--ink));
 }
 
 .recipe-body {
@@ -1074,9 +1159,9 @@
 }
 
 .footer-body {
-  max-width: 1100px;
+  max-width: 1248px;
   margin: 0 auto;
-  padding: 52px 28px 44px;
+  padding: 52px 24px 44px;
 }
 
 .footer-brand {
@@ -1098,9 +1183,9 @@
 }
 
 .footer-bottom {
-  max-width: 1100px;
+  max-width: 1248px;
   margin: 0 auto;
-  padding: 20px 28px;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1162,28 +1247,6 @@
   padding-top: 8px;
 }
 
-.step-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-family: var(--font-b);
-  font-size: 0.68rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--muted);
-  margin-bottom: 28px;
-}
-
-.step-hero-badge::before {
-  content: '';
-  display: block;
-  width: 28px;
-  height: 1px;
-  background: var(--gold);
-  flex-shrink: 0;
-}
-
 .step-hero-title {
   font-family: var(--font-d);
   font-size: clamp(3.2rem, 6vw, 5.2rem);
@@ -1192,13 +1255,18 @@
   color: var(--ink);
   letter-spacing: -0.02em;
   margin-bottom: 28px;
+  text-wrap: balance;
 }
 
 .step-hero-body {
   font-size: 0.93rem;
   color: var(--muted);
   line-height: 1.75;
-  max-width: 320px;
+  max-width: 440px;
+  margin-bottom: 16px;
+}
+
+.step-hero-body:last-of-type {
   margin-bottom: 44px;
 }
 
@@ -1283,18 +1351,25 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: 600px) {
   .navbar-inner {
-    padding: 0 20px;
+    padding: 0 16px;
+    gap: 10px;
     height: 56px;
   }
 
   .nav-logo {
-    font-size: 0.95rem;
-    letter-spacing: 0.1em;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .nav-logo-icon {
+    width: 17px;
+    height: 17px;
   }
 
   .btn--nav {
-    padding: 7px 14px;
-    font-size: 0.76rem;
+    padding: 7px 12px;
+    font-size: 0.74rem;
   }
 
   .app-main {
@@ -1303,10 +1378,16 @@
 
   .ingredient-inputs {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .field--narrow {
     flex: 1;
+  }
+
+  .ingredient-inputs .btn--add {
+    align-self: stretch;
+    width: 100%;
   }
 
   .ingredient-item {
@@ -1357,18 +1438,35 @@
   }
 
   .footer-body {
-    padding: 40px 20px 36px;
+    padding: 40px 16px 36px;
   }
 
   .footer-divider {
-    margin: 0 20px;
+    margin: 0 16px;
   }
 
   .footer-bottom {
-    padding: 18px 20px;
+    padding: 18px 16px;
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Wordmark drops out — icon alone keeps the home link, buttons stay grouped */
+  .nav-logo {
+    display: none;
+  }
+
+  .nav-logo-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .btn--nav {
+    padding: 6px 10px;
+    font-size: 0.72rem;
   }
 }
 
@@ -1402,10 +1500,6 @@
     position: static;
   }
 
-  .step-hero-title br {
-    display: none;
-  }
-
   .step-hero-title {
     font-size: clamp(2.6rem, 8vw, 3.6rem);
     margin-bottom: 20px;
@@ -1413,6 +1507,10 @@
 
   .step-hero-body {
     max-width: 100%;
+    margin-bottom: 14px;
+  }
+
+  .step-hero-body:last-of-type {
     margin-bottom: 32px;
   }
 
@@ -1660,6 +1758,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .nav-logo-icon {
@@ -1703,13 +1803,12 @@
 
 .nutrition-note {
   font-size: 0.62rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--muted);
-  text-align: center;
-  margin-top: 7px;
-  opacity: 0.75;
+  text-align: left;
+  margin: 0 0 6px;
 }
 
 /* ===== PAGINATION ===== */

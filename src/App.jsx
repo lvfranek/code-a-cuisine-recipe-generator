@@ -13,7 +13,7 @@ import { generateRecipes } from './api';
 const DEFAULT_PREFS = {
   portions: 2,
   people: 2,
-  cookingTime: 'medium',
+  cookingTime: '',
   cuisines: [],
   dietPreferences: [],
 };
@@ -51,7 +51,15 @@ function Navbar({ page, onNavigate }) {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <div className="navbar-side navbar-left">
+        <button
+          className="nav-logo-btn"
+          onClick={() => onNavigate('generator')}
+          aria-label="Code a Cuisine — go to generator"
+        >
+          <LogoIcon className="nav-logo-icon" />
+          <span className="nav-logo">Code a <em>Cuisine</em></span>
+        </button>
+        <nav className="navbar-nav">
           <button
             className={`btn--nav ${page === 'generator' ? 'btn--nav-active' : ''}`}
             onClick={() => onNavigate('generator')}
@@ -59,18 +67,6 @@ function Navbar({ page, onNavigate }) {
           >
             Generator
           </button>
-        </div>
-        <div className="navbar-center">
-          <button
-            className="nav-logo-btn"
-            onClick={() => onNavigate('generator')}
-            aria-label="Code a Cuisine — go to generator"
-          >
-            <LogoIcon className="nav-logo-icon" />
-            <span className="nav-logo">Code a <em>Cuisine</em></span>
-          </button>
-        </div>
-        <div className="navbar-side navbar-right">
           <button
             className={`btn--nav ${page === 'cookbook' ? 'btn--nav-active' : ''}`}
             onClick={() => onNavigate('cookbook')}
@@ -78,7 +74,7 @@ function Navbar({ page, onNavigate }) {
           >
             Recipe Book
           </button>
-        </div>
+        </nav>
       </div>
     </header>
   );
@@ -95,8 +91,8 @@ function Footer({ onNavigate }) {
             <span>Code a <em>Cuisine</em></span>
           </div>
           <p className="footer-desc">
-            Turn your pantry into a plate — AI-powered recipes crafted
-            from the ingredients you already have at home.
+            Tell us what's in your kitchen and we'll give you recipes
+            you can cook with what you already have.
           </p>
         </div>
       </div>
@@ -120,7 +116,10 @@ function Footer({ onNavigate }) {
 }
 
 function GeneratorFlow({ screen, setScreen, ingredients, setIngredients, preferences, setPreferences, recipes, setRecipes }) {
+  const [genError, setGenError] = useState('');
+
   const handleGenerate = async () => {
+    setGenError('');
     setScreen('loading');
     const payload = {
       ingredients: ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
@@ -128,15 +127,18 @@ function GeneratorFlow({ screen, setScreen, ingredients, setIngredients, prefere
     };
     try {
       const data = await generateRecipes(payload);
+      if (!data?.recipes?.length) throw new Error('No recipes were returned. Please try again.');
       setRecipes(data.recipes);
       setScreen('results');
     } catch (err) {
       console.error('Recipe generation failed:', err);
+      setGenError(err.message || 'Something went wrong. Please try again.');
       setScreen('preferences');
     }
   };
 
   const handleReset = () => {
+    setGenError('');
     setIngredients([]);
     setPreferences(DEFAULT_PREFS);
     setRecipes([]);
@@ -167,6 +169,7 @@ function GeneratorFlow({ screen, setScreen, ingredients, setIngredients, prefere
               setPreferences={setPreferences}
               onBack={() => setScreen('ingredients')}
               onGenerate={handleGenerate}
+              error={genError}
             />
           )}
           {screen === 'results' && (
@@ -190,7 +193,6 @@ export default function App() {
   };
 
   const isCookbook = page === 'cookbook';
-  const isLegal = page === 'terms' || page === 'privacy';
 
   return (
     <div className="app">

@@ -1,4 +1,5 @@
 const CUISINES = [
+  'Any',
   'German', 'Italian', 'Indian', 'Japanese', 'Mexican',
   'French', 'Thai', 'American', 'Mediterranean', 'Other',
 ];
@@ -14,18 +15,28 @@ const COOKING_TIMES = [
   { id: 'complex', label: 'Complex', time: '~60+ min' },
 ];
 
-export default function StepPreferences({ preferences, setPreferences, onBack, onGenerate }) {
+export default function StepPreferences({ preferences, setPreferences, onBack, onGenerate, error }) {
   const update = (key, value) =>
     setPreferences((prev) => ({ ...prev, [key]: value }));
 
   const toggleCuisine = (c) => {
+    if (c === 'Any') {
+      update('cuisines', ['Any']);
+      return;
+    }
+    const without = preferences.cuisines.filter((x) => x !== 'Any');
     update(
       'cuisines',
-      preferences.cuisines.includes(c)
-        ? preferences.cuisines.filter((x) => x !== c)
-        : [...preferences.cuisines, c]
+      without.includes(c)
+        ? without.filter((x) => x !== c)
+        : [...without, c]
     );
   };
+
+  const canGenerate =
+    Boolean(preferences.cookingTime) &&
+    preferences.cuisines.length > 0 &&
+    preferences.dietPreferences.length > 0;
 
   const toggleDiet = (d) => {
     if (d === 'None') {
@@ -111,7 +122,7 @@ export default function StepPreferences({ preferences, setPreferences, onBack, o
       {/* Cuisine */}
       <div className="pref-group">
         <h3 className="pref-group-title">Cuisine</h3>
-        <div className="chip-grid" role="group" aria-label="Select cuisines (optional)">
+        <div className="chip-grid" role="group" aria-label="Select cuisines">
           {CUISINES.map((c) => (
             <button
               key={c}
@@ -142,11 +153,27 @@ export default function StepPreferences({ preferences, setPreferences, onBack, o
         </div>
       </div>
 
+      {error && (
+        <p className="step-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {!error && !canGenerate && (
+        <p className="step-hint" role="status">
+          Choose a cooking time, a cuisine, and a diet preference to continue.
+        </p>
+      )}
+
       <div className="step-footer step-footer--split">
         <button className="btn btn--ghost" onClick={onBack}>
           ← Back
         </button>
-        <button className="btn btn--primary" onClick={onGenerate}>
+        <button
+          className="btn btn--primary"
+          onClick={onGenerate}
+          disabled={!canGenerate}
+        >
           Generate Recipes →
         </button>
       </div>

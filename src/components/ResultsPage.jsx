@@ -6,6 +6,9 @@ export default function ResultsPage({ recipes, onReset }) {
       <div className="results-header">
         <h2 id="results-title" className="step-title">Your recipes are ready</h2>
         <p className="results-count">{recipes.length} recipes crafted just for you</p>
+        <button className="btn btn--ghost results-reset" onClick={onReset}>
+          ← Start Over
+        </button>
       </div>
 
       <div className="recipe-grid" role="list">
@@ -14,12 +17,6 @@ export default function ResultsPage({ recipes, onReset }) {
             <RecipeCard recipe={recipe} index={i} />
           </div>
         ))}
-      </div>
-
-      <div className="step-footer">
-        <button className="btn btn--ghost" onClick={onReset}>
-          ← Start Over
-        </button>
       </div>
     </section>
   );

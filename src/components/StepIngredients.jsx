@@ -71,17 +71,16 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
 
       {/* ── LEFT — editorial ── */}
       <div className="step-hero-left">
-        <p className="step-hero-badge">Your Ingredients</p>
-
         <h2 className="step-hero-title" id="step1-title">
-          Cook with<br />
-          what you<br />
-          have.
+          Cook with<br />what you have.
         </h2>
 
         <p className="step-hero-body">
           Add the ingredients sitting in your kitchen and we'll craft
           three personalised recipes — no extra shopping required.
+        </p>
+        <p className="step-hero-body">
+          Once they're ready, you can save the ones you like to your Recipe Book.
         </p>
 
         <div className="step-hero-features">
@@ -120,7 +119,7 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
                 autoComplete="off"
               />
             </div>
-            <div className="field field--narrow">
+            <div className="field field--qty">
               <label htmlFor="ing-qty">Qty</label>
               <input
                 id="ing-qty"

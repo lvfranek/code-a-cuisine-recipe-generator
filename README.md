@@ -8,19 +8,33 @@ An AI-powered culinary platform. Intelligent recipe generation, automated ingred
 - `Vite`
 - `JavaScript`
 - `CSS`
-- `Claude`
-- `n8n`
+- `OpenRouter` (model: `minimax/minimax-m3:free`)
+- `Vercel Serverless Functions`
 
 ## 🚀 Features
 
-- Generate recipes powered by Claude based on your current groceries
-- Automated ingredient sourcing and workflow automation via n8n
-- Browse and save recipes in a personal cookbook
+- Generate recipes with an LLM (via OpenRouter) from the groceries you already have
+- Tailor results by portions, cooking time, cuisine, and dietary needs
+- Save recipes to a personal Recipe Book (stored in the browser via `localStorage`)
 - Clean, responsive recipe card interface
 
 ## 🎞️ Live Demo
 
 [code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)
+
+## 🔑 Environment
+
+Recipe generation calls OpenRouter through a serverless function ([`api/generate.js`](api/generate.js)),
+so the API key stays on the server and is **never** shipped to the browser.
+
+Create a `.env` file in the project root (copy [`.env.example`](.env.example)):
+
+```bash
+OPENROUTER_API_KEY=sk-or-...
+```
+
+Get a key at <https://openrouter.ai/keys>. For deployment, set the same variable in
+**Vercel → Project → Settings → Environment Variables**, then redeploy.
 
 ## 🚦 Running the Project
 
@@ -28,14 +42,15 @@ This project was generated using [Vite](https://vite.dev/).
 
 ### Development server
 
-To start a local development server, run:
-
 ```bash
 npm install
 npm run dev
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:5173/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:5173/`. The Vite config runs the functions in `/api`
+locally with the exact same request/response shape Vercel uses — so if recipe
+generation works with `npm run dev`, it works on Vercel with no extra steps
+(same `api/*.js` files, same `OPENROUTER_API_KEY`).
 
 ### Building
 
@@ -63,4 +78,4 @@ npm run lint
 
 ## 📚 Additional Resources
 
-For more information on the tools used in this project, visit the [Vite documentation](https://vite.dev/) and the [n8n documentation](https://docs.n8n.io/).
+For more information on the tools used in this project, visit the [Vite documentation](https://vite.dev/), the [OpenRouter documentation](https://openrouter.ai/docs), and the [Vercel Functions documentation](https://vercel.com/docs/functions).
