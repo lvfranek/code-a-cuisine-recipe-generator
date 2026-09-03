@@ -37,6 +37,8 @@ instructions written so anyone can follow them.
   (`api/generate.js`) so the API key never reaches the browser.
 - The function retries up to 3× on rate limits, transient errors, or malformed
   model output, and surfaces a readable error in the UI if it still fails.
+- **Abuse-hardened** for public use: server-side input validation and per-IP /
+  global rate limiting on `/api/generate` (see [Security & limits](#-security--limits)).
 - The Vite dev server runs the same `/api` function locally with the same
   request/response shape Vercel uses — **works locally ⇒ works on Vercel**, no
   extra tooling.
@@ -54,6 +56,7 @@ instructions written so anyone can follow them.
 | AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3:free` |
 | Backend     | Vercel Serverless Functions (`/api`)               |
 | Persistence | Browser `localStorage`                             |
+| Rate limit  | Upstash Redis (optional) with in-memory fallback   |
 | Linting     | ESLint 10 (flat config)                            |
 
 ## 🏗️ How It Works
@@ -63,6 +66,7 @@ Browser (React)
    │  POST /api/generate  { ingredients, portions, people, cookingTime, cuisines, dietPreferences }
    ▼
 /api/generate.js  (Vercel function — locally: Vite dev middleware)
+   │  validates + rate-limits the request
    │  builds a prompt, calls OpenRouter with OPENROUTER_API_KEY (server-side)
    │  parses + normalises the model's JSON, retries on failure
    ▼
@@ -78,7 +82,10 @@ endpoints during `npm run dev`, mirroring Vercel's runtime.
 
 ```
 api/
-  generate.js          Serverless function: prompt building, OpenRouter call, retries
+  generate.js          Serverless function: validation, rate limit, OpenRouter call, retries
+lib/
+  validate.js          Request-body validation + normalisation (shared, server-side)
+  ratelimit.js         Per-IP + global rate limiting (Upstash Redis or in-memory)
 src/
   api.js               Front-end wrapper around POST /api/generate
   cookbook.js           localStorage-backed Recipe Book store
@@ -108,6 +115,12 @@ OPENROUTER_API_KEY=sk-or-...
 
 Get a free key at <https://openrouter.ai/keys>. It's used **only** by
 `api/generate.js` on the server — it is never bundled into the client.
+
+**Optional:** rate limiting works out of the box (in-memory). For limits shared
+across serverless instances, add an [Upstash Redis](https://upstash.com/) store
+(Vercel → *Storage*, free tier) and set `UPSTASH_REDIS_REST_URL` +
+`UPSTASH_REDIS_REST_TOKEN`. See [`.env.example`](.env.example) for the tunable
+`RATELIMIT_*` values.
 
 ## 🚦 Getting Started
 
@@ -139,6 +152,23 @@ locally as in production.
    *Project → Settings → Environment Variables*.
 3. Deploy. Vercel automatically serves `/api/generate.js` as a serverless
    function — no config file needed.
+4. *(Optional)* Add an Upstash Redis store and its env vars for shared rate
+   limiting (see [Environment](#-environment)).
+
+## 🔒 Security & Limits
+
+`/api/generate` is a public endpoint, so it's hardened server-side:
+
+- **Input validation** ([`lib/validate.js`](lib/validate.js)): ≤ 20 ingredients,
+  name ≤ 50 chars (control chars stripped), quantity `0–100000`, and every
+  enum (`unit` / `cuisine` / `diet` / `cookingTime`) checked against a fixed
+  allow-list. 10 KB body cap. `POST` + same-origin only.
+- **Rate limiting** ([`lib/ratelimit.js`](lib/ratelimit.js)): 15/day + 5/min per
+  IP, 300/day overall; `429` with `Retry-After` when exceeded. IPs are hashed,
+  never stored raw.
+
+User input only becomes text inside the model prompt — no `eval`, shell,
+filesystem or database — and React escapes all rendered output.
 
 ## 📝 Notes & Limitations
 

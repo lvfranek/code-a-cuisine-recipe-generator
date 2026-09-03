@@ -1,8 +1,26 @@
 // Vercel serverless function — proxies recipe generation to OpenRouter.
 // The API key lives in the OPENROUTER_API_KEY env var and never reaches the browser.
 
+import { validatePayload, LIMITS } from '../lib/validate.js';
+import { checkRateLimit, usingRedis } from '../lib/ratelimit.js';
+
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'minimax/minimax-m3:free';
+
+// Reject obvious cross-site / non-browser callers. Not a security boundary
+// (headers are spoofable) — it just trims drive-by bot traffic. The rate
+// limiter is the real protection.
+function originAllowed(req) {
+  const origin = req.headers.origin;
+  if (origin) {
+    try {
+      if (new URL(origin).host !== req.headers.host) return false;
+    } catch {
+      return false;
+    }
+  }
+  return req.headers['x-cac-client'] === 'web';
+}
 
 const TIME_HINT = {
   quick: 'about 15 minutes',
@@ -102,9 +120,21 @@ function normalise(recipes, fallbackPortions) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'no-store');
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!originAllowed(req)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const contentLength = Number(req.headers['content-length'] || 0);
+  if (contentLength > LIMITS.maxBodyBytes) {
+    return res.status(413).json({ error: 'Request body too large' });
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -112,7 +142,30 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
   }
 
-  const payload = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+  let raw;
+  try {
+    raw = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
+  const check = validatePayload(raw);
+  if (!check.ok) {
+    return res.status(400).json({ error: check.error });
+  }
+  const payload = check.value;
+
+  const limit = await checkRateLimit(req);
+  if (!limit.ok) {
+    res.setHeader('Retry-After', String(limit.retryAfterSec));
+    return res.status(limit.status).json({ error: limit.error, scope: limit.scope });
+  }
+  if (limit.remaining >= 0) {
+    res.setHeader('X-RateLimit-Remaining', String(limit.remaining));
+  }
+  if (!usingRedis) {
+    res.setHeader('X-RateLimit-Backend', 'memory');
+  }
 
   const prompt = buildPrompt(payload);
   const ATTEMPTS = 3;

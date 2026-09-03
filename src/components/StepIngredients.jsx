@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
 const UNITS = ['g', 'ml', 'oz', 'pcs', 'tsp', 'tbsp', 'cup'];
+const MAX_INGREDIENTS = 20;
+const NAME_MAX = 50;
 
 const FEATURES = [
   { label: 'Pantry-based',  sub: 'Zero waste cooking'      },
@@ -15,13 +17,14 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
 
-  const canAdd = name.trim().length > 0 && quantity !== '';
+  const atLimit = ingredients.length >= MAX_INGREDIENTS;
+  const canAdd = name.trim().length > 0 && quantity !== '' && !atLimit;
 
   const handleAdd = () => {
     if (!canAdd) return;
     setIngredients((prev) => [
       ...prev,
-      { id: Date.now(), name: name.trim(), quantity: Number(quantity), unit },
+      { id: Date.now(), name: name.trim().slice(0, NAME_MAX), quantity: Number(quantity), unit },
     ]);
     setName('');
     setQuantity('');
@@ -64,7 +67,9 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
   const ingredientCount = ingredients.length;
   const countLabel = ingredientCount === 0
     ? 'Add at least one ingredient to continue.'
-    : `${ingredientCount} ingredient${ingredientCount !== 1 ? 's' : ''} added`;
+    : atLimit
+      ? `Maximum of ${MAX_INGREDIENTS} ingredients reached`
+      : `${ingredientCount} ingredient${ingredientCount !== 1 ? 's' : ''} added`;
 
   return (
     <div className="step-hero">
@@ -117,6 +122,8 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 autoComplete="off"
+                maxLength={NAME_MAX}
+                disabled={atLimit}
               />
             </div>
             <div className="field field--qty">
