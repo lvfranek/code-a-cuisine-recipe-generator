@@ -6,9 +6,19 @@ instructions written so anyone can follow them.
 
 ![Code a Cuisine](public/code-a-cuisine.jpeg)
 
-## 🎞️ Live Demo
+## ⌨️ Tech Stack
 
-**[code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)**
+| Area        | Choice                                              |
+| ----------- | -------------------------------------------------- |
+| UI          | React 19                                           |
+| Build tool  | Vite 8                                             |
+| Language    | JavaScript (ESM)                                   |
+| Styling     | Plain CSS with design tokens (no framework)        |
+| AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3:free` |
+| Backend     | Vercel Serverless Functions (`/api`)               |
+| Persistence | Browser `localStorage`                             |
+| Rate limit  | Upstash Redis (optional) with in-memory fallback   |
+| Linting     | ESLint 10 (flat config)                            |
 
 ## 🚀 Features
 
@@ -45,19 +55,23 @@ instructions written so anyone can follow them.
 - Responsive layout down to small mobile widths; respects
   `prefers-reduced-motion`.
 
-## ⌨️ Tech Stack
+## 🎞️ Live Demo
 
-| Area        | Choice                                              |
-| ----------- | -------------------------------------------------- |
-| UI          | React 19                                           |
-| Build tool  | Vite 8                                             |
-| Language    | JavaScript (ESM)                                   |
-| Styling     | Plain CSS with design tokens (no framework)        |
-| AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3:free` |
-| Backend     | Vercel Serverless Functions (`/api`)               |
-| Persistence | Browser `localStorage`                             |
-| Rate limit  | Upstash Redis (optional) with in-memory fallback   |
-| Linting     | ESLint 10 (flat config)                            |
+**[code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)**
+
+## 🚦 Getting Started
+
+**Prerequisites:** Node.js 18+ (developed on Node 24).
+
+```bash
+npm install
+cp .env.example .env      # then paste your OpenRouter key
+npm run dev
+```
+
+Open <http://localhost:5173/>. Editing any source file hot-reloads the app.
+Because the dev server also runs `/api`, recipe generation works the same
+locally as in production.
 
 ## 🏗️ How It Works
 
@@ -121,20 +135,6 @@ across serverless instances, add an [Upstash Redis](https://upstash.com/) store
 (Vercel → *Storage*, free tier) and set `UPSTASH_REDIS_REST_URL` +
 `UPSTASH_REDIS_REST_TOKEN`. See [`.env.example`](.env.example) for the tunable
 `RATELIMIT_*` values.
-
-## 🚦 Getting Started
-
-**Prerequisites:** Node.js 18+ (developed on Node 24).
-
-```bash
-npm install
-cp .env.example .env      # then paste your OpenRouter key
-npm run dev
-```
-
-Open <http://localhost:5173/>. Editing any source file hot-reloads the app.
-Because the dev server also runs `/api`, recipe generation works the same
-locally as in production.
 
 ## 📜 Available Scripts
 
