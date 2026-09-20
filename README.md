@@ -1,4 +1,4 @@
-# 🍳 Code a Cuisine
+# 📝 Code a Cuisine
 
 Tell the app what's in your kitchen and it gives you three recipes you can cook
 with what you already have — full ingredient lists and plain, step-by-step
