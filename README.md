@@ -1,79 +1,125 @@
-# 📝 Code a Cuisine
+# 🍳 Code a Cuisine
 
 Tell the app what's in your kitchen and it gives you three recipes you can cook
 with what you already have — full ingredient lists and plain, step-by-step
-instructions written so anyone can follow them.
+instructions written so anyone can follow them. Saved recipes live in a personal
+Recipe Book, no account required.
 
 ![Code a Cuisine](public/code-a-cuisine.jpeg)
 
-## ⌨️ Tech Stack
+## Table of Contents
 
-| Area        | Choice                                              |
-| ----------- | -------------------------------------------------- |
-| UI          | React 19                                           |
-| Build tool  | Vite 8                                             |
-| Language    | JavaScript (ESM)                                   |
-| Styling     | Plain CSS with design tokens (no framework)        |
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+- [Live Demo](#live-demo)
+- [Installation](#️-installation)
+- [Environment Variables](#environment-variables)
+- [Available Scripts](#available-scripts)
+- [Architecture](#architecture)
+- [Folder Structure](#folder-structure)
+- [Deployment](#deployment)
+- [Security Considerations](#security-considerations)
+- [Limitations](#limitations)
+- [Learn More](#learn-more)
+- [License](#license)
+
+## Tech Stack
+
+| Area        | Choice                                                                |
+| ----------- | --------------------------------------------------------------------- |
+| UI          | React 19                                                              |
+| Build tool  | Vite 8                                                                |
+| Language    | JavaScript (ESM)                                                      |
+| Styling     | Plain CSS with design tokens (no framework)                           |
 | AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3:free` |
-| Backend     | Vercel Serverless Functions (`/api`)               |
-| Persistence | Browser `localStorage`                             |
-| Rate limit  | Upstash Redis (optional) with in-memory fallback   |
-| Linting     | ESLint 10 (flat config)                            |
+| Backend     | Vercel Serverless Functions (`/api`)                                  |
+| Persistence | Browser `localStorage`                                                |
+| Rate limit  | Upstash Redis (optional) with in-memory fallback                      |
+| Linting     | ESLint 10 (flat config)                                               |
 
-## 🚀 Features
+## Features
 
 **Recipe generator**
-- Two-step guided flow: add your ingredients (name / quantity / unit), then set
-  your preferences.
-- Tailor results by **portions**, **number of people**, **cooking time**
-  (quick / medium / complex), **cuisine**, and **dietary needs**
-  (vegan, vegetarian, keto, gluten-free, dairy-free, low-carb, paleo).
-- `Any` cuisine option when you don't mind what style it is.
-- Every preference is required before **Generate Recipes** unlocks, with an
-  inline hint telling you what's missing.
-- Returns exactly three recipes, each with a description, per-portion nutrition
-  (calories / protein / carbs / fat), a full ingredient list, and 6–10
-  numbered instruction steps in simple everyday language.
+
+- **Two-step guided flow** — add your ingredients (name / quantity / unit), then set your preferences.
+- **Tailored results** — filter by portions, number of people, cooking time (quick / medium / complex), cuisine, and dietary needs (vegan, vegetarian, keto, gluten-free, dairy-free, low-carb, paleo).
+- **`Any` cuisine option** — for when you don't mind what style it is.
+- **Guarded submit** — every preference is required before **Generate Recipes** unlocks, with an inline hint telling you what's missing.
+- **Three complete recipes** — each with a description, per-portion nutrition (calories / protein / carbs / fat), a full ingredient list, and 6–10 numbered instruction steps in simple everyday language.
 
 **Recipe Book**
-- Save any generated recipe with one click; it's kept in the browser via
-  `localStorage` (no account needed).
-- Browse saved recipes with filters for cuisine, cooking time, and dietary tag,
-  plus pagination.
-- Remove a recipe by toggling **Saved** off from its card.
+
+- **One-click save** — keep any generated recipe in the browser via `localStorage`, no account needed.
+- **Browse and filter** — filters for cuisine, cooking time, and dietary tag, plus pagination.
+- **Remove** — toggle **Saved** off from a recipe card.
 
 **Under the hood**
-- Recipe generation runs through a **Vercel serverless function**
-  (`api/generate.js`) so the API key never reaches the browser.
-- The function retries up to 3× on rate limits, transient errors, or malformed
-  model output, and surfaces a readable error in the UI if it still fails.
-- **Abuse-hardened** for public use: server-side input validation and per-IP /
-  global rate limiting on `/api/generate` (see [Security & limits](#-security--limits)).
-- The Vite dev server runs the same `/api` function locally with the same
-  request/response shape Vercel uses — **works locally ⇒ works on Vercel**, no
-  extra tooling.
-- Responsive layout down to small mobile widths; respects
-  `prefers-reduced-motion`.
 
-## 🎞️ Live Demo
+- **Server-side generation** — recipes are generated by a Vercel serverless function (`api/generate.js`), so the API key never reaches the browser.
+- **Resilient calls** — the function retries up to 3× on rate limits, transient errors, or malformed model output, and surfaces a readable error in the UI if it still fails.
+- **Abuse-hardened** — server-side input validation and per-IP / global rate limiting on `/api/generate` (see [Security Considerations](#security-considerations)).
+- **Same behaviour locally** — the Vite dev server runs the same `/api` function with the request/response shape Vercel uses, so working locally means working on Vercel, with no extra tooling.
+- **Accessible layout** — responsive down to small mobile widths; respects `prefers-reduced-motion`.
 
-**[code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)**
+## Live Demo
 
-## 🚦 Getting Started
+[code-a-cuisine-three.vercel.app](https://code-a-cuisine-three.vercel.app/)
 
-**Prerequisites:** Node.js 18+ (developed on Node 24).
+## ⚙️ Installation
 
-```bash
-npm install
-cp .env.example .env      # then paste your OpenRouter key
-npm run dev
-```
+**Prerequisites:** Node.js 18+ (developed on Node 24) and a free
+[OpenRouter API key](https://openrouter.ai/keys).
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create your env file and paste your OpenRouter key into it:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
 
 Open <http://localhost:5173/>. Editing any source file hot-reloads the app.
 Because the dev server also runs `/api`, recipe generation works the same
 locally as in production.
 
-## 🏗️ How It Works
+## Environment Variables
+
+Copy [`.env.example`](.env.example) to `.env` and fill in the values.
+
+| Variable                  | Description                                                     | Required |
+| ------------------------- | --------------------------------------------------------------- | -------- |
+| `OPENROUTER_API_KEY`      | OpenRouter key, used only by `api/generate.js` on the server     | Yes      |
+| `UPSTASH_REDIS_REST_URL`  | Upstash Redis REST URL for rate limits shared across instances   | No       |
+| `UPSTASH_REDIS_REST_TOKEN`| Upstash Redis REST token                                         | No       |
+| `RATELIMIT_PER_IP_DAILY`  | Daily requests per IP (default `15`)                             | No       |
+| `RATELIMIT_PER_IP_BURST`  | Requests per minute per IP (default `5`)                         | No       |
+| `RATELIMIT_GLOBAL_DAILY`  | Daily requests across all users (default `300`)                  | No       |
+
+`OPENROUTER_API_KEY` is used **only** server-side — it is never bundled into the
+client. Rate limiting works out of the box without Upstash, using an in-memory
+limiter per serverless instance; adding an [Upstash Redis](https://upstash.com/)
+store (Vercel → *Storage*, free tier) makes the limits shared and reliable.
+
+## Available Scripts
+
+| Command           | What it does                                          |
+| ----------------- | ----------------------------------------------------- |
+| `npm run dev`     | Start the dev server (with the local `/api` function) |
+| `npm run build`   | Production build into `dist/`                         |
+| `npm run preview` | Serve the built `dist/` (static only — no `/api`)     |
+| `npm run lint`    | Run ESLint over the project                           |
+
+## Architecture
 
 ```
 Browser (React)
@@ -92,7 +138,7 @@ The key stays server-side in both environments. Locally, a small plugin in
 [`vite.config.js`](vite.config.js) mounts everything in `/api` as real
 endpoints during `npm run dev`, mirroring Vercel's runtime.
 
-## 📁 Project Structure
+## Folder Structure
 
 ```
 api/
@@ -102,9 +148,9 @@ lib/
   ratelimit.js         Per-IP + global rate limiting (Upstash Redis or in-memory)
 src/
   api.js               Front-end wrapper around POST /api/generate
-  cookbook.js           localStorage-backed Recipe Book store
-  App.jsx               App shell, routing between screens, generate flow
-  App.css               All styles + design tokens
+  cookbook.js          localStorage-backed Recipe Book store
+  App.jsx              App shell, routing between screens, generate flow
+  App.css              All styles + design tokens
   components/
     StepIngredients.jsx  Step 1 — add ingredients
     StepPreferences.jsx  Step 2 — preferences + validation
@@ -116,46 +162,20 @@ src/
   pages/
     PrivacyPage.jsx
     TermsPage.jsx
-vite.config.js          Vite config + local /api dev middleware
+vite.config.js         Vite config + local /api dev middleware
 ```
 
-## 🔑 Environment
-
-Create a `.env` file in the project root (copy [`.env.example`](.env.example)):
-
-```bash
-OPENROUTER_API_KEY=sk-or-...
-```
-
-Get a free key at <https://openrouter.ai/keys>. It's used **only** by
-`api/generate.js` on the server — it is never bundled into the client.
-
-**Optional:** rate limiting works out of the box (in-memory). For limits shared
-across serverless instances, add an [Upstash Redis](https://upstash.com/) store
-(Vercel → *Storage*, free tier) and set `UPSTASH_REDIS_REST_URL` +
-`UPSTASH_REDIS_REST_TOKEN`. See [`.env.example`](.env.example) for the tunable
-`RATELIMIT_*` values.
-
-## 📜 Available Scripts
-
-| Command           | What it does                                            |
-| ----------------- | ------------------------------------------------------ |
-| `npm run dev`     | Start the dev server (with the local `/api` function)  |
-| `npm run build`   | Production build into `dist/`                          |
-| `npm run preview` | Serve the built `dist/` (static only — no `/api`)      |
-| `npm run lint`    | Run ESLint over the project                            |
-
-## ☁️ Deploying to Vercel
+## Deployment
 
 1. Import the repository into Vercel (framework preset: **Vite**).
-2. Add an environment variable **`OPENROUTER_API_KEY`** under
+2. Add the environment variable **`OPENROUTER_API_KEY`** under
    *Project → Settings → Environment Variables*.
 3. Deploy. Vercel automatically serves `/api/generate.js` as a serverless
    function — no config file needed.
 4. *(Optional)* Add an Upstash Redis store and its env vars for shared rate
-   limiting (see [Environment](#-environment)).
+   limiting (see [Environment Variables](#environment-variables)).
 
-## 🔒 Security & Limits
+## Security Considerations
 
 `/api/generate` is a public endpoint, so it's hardened server-side:
 
@@ -170,7 +190,7 @@ across serverless instances, add an [Upstash Redis](https://upstash.com/) store
 User input only becomes text inside the model prompt — no `eval`, shell,
 filesystem or database — and React escapes all rendered output.
 
-## 📝 Notes & Limitations
+## Limitations
 
 - **Free model:** `minimax/minimax-m3:free` is rate-limited on OpenRouter's free
   tier and occasionally returns imperfect JSON — the function retries, but under
@@ -182,8 +202,12 @@ filesystem or database — and React escapes all rendered output.
 - **`npm run preview`** serves only the static build, so recipe generation won't
   work there — use `npm run dev` or a Vercel deployment.
 
-## 📚 Additional Resources
+## Learn More
 
 - [Vite documentation](https://vite.dev/)
 - [OpenRouter documentation](https://openrouter.ai/docs)
 - [Vercel Functions documentation](https://vercel.com/docs/functions)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
