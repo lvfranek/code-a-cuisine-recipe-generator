@@ -31,7 +31,7 @@ Recipe Book, no account required.
 | Build tool  | Vite 8                                                                |
 | Language    | JavaScript (ESM)                                                      |
 | Styling     | Plain CSS with design tokens (no framework)                           |
-| AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3:free` |
+| AI          | [OpenRouter](https://openrouter.ai) — model `minimax/minimax-m3`      |
 | Backend     | Vercel Serverless Functions (`/api`)                                  |
 | Persistence | Browser `localStorage`                                                |
 | Rate limit  | Upstash Redis (optional) with in-memory fallback                      |
@@ -192,10 +192,11 @@ filesystem or database — and React escapes all rendered output.
 
 ## Limitations
 
-- **Free model:** `minimax/minimax-m3:free` is rate-limited on OpenRouter's free
-  tier and occasionally returns imperfect JSON — the function retries, but under
-  heavy use a request can still fail. Swap `MODEL` in
-  [`api/generate.js`](api/generate.js) for a paid model if you need reliability.
+- **Paid model:** `minimax/minimax-m3` costs a fraction of a cent per
+  generation, so the OpenRouter account needs credit. Cap spending with a
+  credit limit on the API key. The model occasionally returns imperfect JSON;
+  the function retries, but a request can still fail. Change `MODEL` in
+  [`api/generate.js`](api/generate.js) to use a different model.
 - **Recipe Book is per-browser:** saved recipes live in `localStorage` on one
   device. Clearing site data or switching browsers loses them. Making it
   cross-device would require a real backend/database.

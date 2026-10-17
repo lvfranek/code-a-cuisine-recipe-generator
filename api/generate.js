@@ -5,7 +5,7 @@ import { validatePayload, LIMITS } from '../lib/validate.js';
 import { checkRateLimit, usingRedis } from '../lib/ratelimit.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'minimax/minimax-m3:free';
+const MODEL = 'minimax/minimax-m3';
 
 // Reject obvious cross-site / non-browser callers. Not a security boundary
 // (headers are spoofable) — it just trims drive-by bot traffic. The rate
