@@ -1867,3 +1867,14 @@
   margin-top: 20px;
   flex-wrap: wrap;
 }
+
+/* iOS Safari zooms into form fields below 16px — keep them at 16px on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select,
+  .edit-input,
+  .edit-select {
+    font-size: 16px;
+  }
+}
