@@ -8,7 +8,13 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ENV_FILE = BACKEND_DIR / ".env"
+
+
+def _resolve(path: str) -> Path:
+    p = Path(path)
+    return p if p.is_absolute() else BACKEND_DIR / p
 
 
 class Settings(BaseSettings):
@@ -31,6 +37,11 @@ class Settings(BaseSettings):
     # Comma-separated list of frontend origins allowed by CORS.
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Vector index (ChromaDB) and the recipe file it is built from.
+    # Relative paths are resolved against the backend/ folder.
+    chroma_dir: str = "data/chroma"
+    recipes_file: str = "data/recipes.jsonl"
+
     # Redis for rate-limit counters. Empty = in-memory (local dev).
     redis_url: str = ""
 
@@ -38,6 +49,14 @@ class Settings(BaseSettings):
     ratelimit_per_ip_daily: int = 15
     ratelimit_per_ip_burst: int = 5  # per 60 seconds
     ratelimit_global_daily: int = 300
+
+    @property
+    def chroma_path(self) -> Path:
+        return _resolve(self.chroma_dir)
+
+    @property
+    def recipes_path(self) -> Path:
+        return _resolve(self.recipes_file)
 
     @property
     def origins(self) -> list[str]:

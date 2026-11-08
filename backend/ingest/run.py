@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 from core.llm import OutOfCreditsError, usage
-from core.schemas import RecipeRecord
+from core.recipes import load_records
 from ingest.structure import structure_recipe
 from ingest.wikibooks import category_name, download_raw, load_raw, make_item_id, select_recipes
 
@@ -28,13 +28,6 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 RAW_PATH = DATA_DIR / "raw" / "wikibooks_recipes_parsed.json"
 OUT_PATH = DATA_DIR / "recipes.jsonl"
 ERR_PATH = DATA_DIR / "ingest_errors.jsonl"
-
-
-def load_records(path: Path) -> list[RecipeRecord]:
-    if not path.exists():
-        return []
-    lines = path.read_text(encoding="utf-8").splitlines()
-    return [RecipeRecord.model_validate_json(line) for line in lines if line.strip()]
 
 
 def append_jsonl(path: Path, data: dict) -> None:

@@ -42,3 +42,6 @@ __pycache__/
 backend/data/raw/
 backend/data/ingest_errors.jsonl
 backend/data/*.backup-*
+
+backend/data/chroma/
+backend/data/chroma.backup-*/
