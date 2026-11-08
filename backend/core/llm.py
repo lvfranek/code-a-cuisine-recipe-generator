@@ -80,6 +80,8 @@ async def chat(messages: list[dict], *, temperature: float | None = None, model:
         "messages": messages,
         "usage": {"include": True},  # ask OpenRouter to report the cost
     }
+    if s.llm_reasoning_effort:
+        payload["reasoning"] = {"effort": s.llm_reasoning_effort}
     headers = {
         "Authorization": f"Bearer {s.openrouter_api_key}",
         "HTTP-Referer": s.app_url,
@@ -101,11 +103,14 @@ async def chat(messages: list[dict], *, temperature: float | None = None, model:
     try:
         data = res.json()
         usage.add(data.get("usage") or {})
-        content = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
     except (ValueError, KeyError, IndexError, TypeError) as err:
         raise RetryableLLMError(f"Unexpected OpenRouter response: {res.text[:300]}") from err
     if not content:
-        raise RetryableLLMError("Empty response from model")
+        reason = choice.get("finish_reason")
+        hint = " (token limit reached, raise LLM_MAX_TOKENS)" if reason == "length" else ""
+        raise RetryableLLMError(f"Empty response from model, finish_reason={reason}{hint}")
     return content
 
 

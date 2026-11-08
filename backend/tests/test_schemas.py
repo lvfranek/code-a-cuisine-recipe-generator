@@ -24,7 +24,7 @@ FRONTEND_EXAMPLE = {
 
 def test_frontend_example_round_trips_unchanged():
     parsed = RecipesResponse.model_validate(FRONTEND_EXAMPLE)
-    assert parsed.model_dump() == FRONTEND_EXAMPLE
+    assert parsed.model_dump(exclude_none=True) == FRONTEND_EXAMPLE
 
 
 def test_missing_optional_fields_get_same_defaults_as_js():

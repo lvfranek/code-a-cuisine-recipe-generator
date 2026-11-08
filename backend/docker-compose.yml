@@ -21,7 +21,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    mem_limit: 512m
+    # Embedding model + vector index need a bit more memory than plain FastAPI.
+    mem_limit: 1g
 
   redis:
     image: redis:7.4-alpine

@@ -968,6 +968,24 @@
   margin-bottom: 16px;
 }
 
+/* "Based on <original recipe>" — source + license of the RAG template */
+.recipe-source {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: -8px 0 16px;
+}
+
+.recipe-source a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.recipe-source a:hover {
+  color: var(--ink);
+}
+
 .recipe-tags {
   display: flex;
   flex-wrap: wrap;

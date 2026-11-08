@@ -22,13 +22,19 @@ class Settings(BaseSettings):
 
     # LLM (OpenRouter). Keep the default model cheap.
     openrouter_api_key: str = ""
-    llm_model: str = "minimax/minimax-m3"
+    # Fast, cheap, no long "thinking" (~5 s, ~0.1 cent per request in tests).
+    llm_model: str = "google/gemini-2.5-flash-lite"
     llm_temperature: float = 0.8
-    llm_max_tokens: int = 6000
+    # Thinking models spend ~3-4k tokens on reasoning before answering; a low
+    # limit cuts the answer off (empty response). Only used tokens are billed.
+    llm_max_tokens: int = 12000
     llm_timeout_seconds: float = 90
     max_repair_attempts: int = 5
-    # Model for the one-off recipe import. Empty = same as llm_model.
-    ingest_model: str = ""
+    # OpenRouter reasoning effort ("low" / "medium" / "high"). Empty = model default.
+    # Lower = faster and cheaper answers from "thinking" models.
+    llm_reasoning_effort: str = ""
+    # Model for the one-off recipe import (data/recipes.jsonl was built with it).
+    ingest_model: str = "minimax/minimax-m3"
 
     # Shown to OpenRouter (attribution headers).
     app_url: str = "https://code-a-cuisine-three.vercel.app"

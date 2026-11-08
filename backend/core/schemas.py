@@ -178,10 +178,21 @@ class RecipeDrafts(BaseModel):
     recipes: list[RecipeDraft] = Field(min_length=1)
 
 
+class BasedOn(BaseModel):
+    """The real recipe from our database that a generated recipe was adapted from."""
+
+    itemId: str
+    name: str
+    url: str
+    source: str
+    license: str
+
+
 class Recipe(RecipeDraft):
-    """One recipe as the frontend expects it."""
+    """One recipe as the frontend expects it. `basedOn` is new and optional."""
 
     id: int
+    basedOn: BasedOn | None = None
 
 
 class RecipesResponse(BaseModel):

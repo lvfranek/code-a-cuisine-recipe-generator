@@ -25,6 +25,17 @@ export default function RecipeCard({ recipe, index = 0 }) {
         <h3 className="recipe-name">{recipe.name}</h3>
         <p className="recipe-desc">{recipe.description}</p>
 
+        {recipe.basedOn?.url && (
+          <p className="recipe-source">
+            Based on{' '}
+            <a href={recipe.basedOn.url} target="_blank" rel="noopener noreferrer">
+              {recipe.basedOn.name}
+            </a>
+            {' · '}
+            {recipe.basedOn.source}, {recipe.basedOn.license}
+          </p>
+        )}
+
         {recipe.nutrition && (
           <div className="nutrition-block">
             <p className="nutrition-note">Per portion</p>

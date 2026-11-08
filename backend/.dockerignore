@@ -7,3 +7,8 @@ __pycache__
 .pytest_cache
 tests
 CLAUDE.md
+data/raw
+data/chroma
+data/*.backup-*
+data/ingest_errors.jsonl
+scripts

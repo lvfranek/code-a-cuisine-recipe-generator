@@ -34,7 +34,7 @@ def test_health(client):
 def test_generate_success(client):
     res = client.post("/generate", json=BODY, headers=HEADERS)
     assert res.status_code == 200
-    assert res.json() == FAKE_RESULT.model_dump()
+    assert res.json() == FAKE_RESULT.model_dump(exclude_none=True)
     assert res.headers["X-RateLimit-Remaining"] == "14"
     assert res.headers["Cache-Control"] == "no-store"
 

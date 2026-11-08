@@ -6,6 +6,7 @@ Start locally (from the backend/ folder):
 
 import json
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from pydantic import ValidationError
 from core.config import get_settings
 from core.generate import generate_recipes
 from core.ratelimit import create_rate_limiter, hash_ip
+from core.retrieval import embed
 from core.schemas import MAX_BODY_BYTES, GenerateRequest
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -22,9 +24,21 @@ log = logging.getLogger("api")
 
 settings = get_settings()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the embedding model once at startup, so the first user does not wait."""
+    try:
+        embed(["warm up"])
+        log.info("Embedding model loaded")
+    except Exception as err:  # search falls back to free generation anyway
+        log.warning("Could not preload embedding model: %s", err)
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Code a Cuisine API",
-    version="0.2.0",
+    version="0.3.0",
     description="Recipe generation backend for Code a Cuisine.",
 )
 
@@ -102,6 +116,6 @@ async def generate(request: Request) -> JSONResponse:
         return error_response(502, "Could not generate recipes right now. Please try again.")
 
     return JSONResponse(
-        result.model_dump(),
+        result.model_dump(exclude_none=True),
         headers={**BASE_HEADERS, "X-RateLimit-Remaining": str(limit.remaining)},
     )

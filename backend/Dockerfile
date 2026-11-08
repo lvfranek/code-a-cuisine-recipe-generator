@@ -19,10 +19,18 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY core ./core
 COPY api ./api
+COPY ingest ./ingest
+COPY data/recipes.jsonl ./data/recipes.jsonl
 
 # Run as non-root user.
-RUN useradd --create-home --uid 10001 app
+RUN useradd --create-home --uid 10001 app && chown -R app /app/data
 USER app
+
+# Build the recipe vector index into the image. This also downloads the
+# small embedding model (all-MiniLM-L6-v2, ONNX, ~80 MB) into the image,
+# so the container needs no network access for search at runtime.
+ENV ANONYMIZED_TELEMETRY=False
+RUN python -m ingest.build_index
 
 EXPOSE 8000
 
