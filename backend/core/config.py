@@ -62,6 +62,14 @@ class Settings(BaseSettings):
     ratelimit_photo_per_ip_burst: int = 3
     ratelimit_photo_global_daily: int = 150
 
+    # Remote MCP server (mcp_server/http.py)
+    mcp_api_keys: str = ""  # comma-separated; empty = MCP endpoint rejects everything
+    mcp_allowed_hosts: str = "localhost:*,127.0.0.1:*"  # Host headers accepted (add your domain)
+    mcp_allowed_origins: str = ""  # browser Origins accepted (MCP clients usually send none)
+    mcp_ratelimit_per_key_daily: int = 500
+    mcp_ratelimit_per_key_burst: int = 60  # per 60 seconds
+    mcp_ratelimit_global_daily: int = 3000
+
     @property
     def chroma_path(self) -> Path:
         return _resolve(self.chroma_dir)

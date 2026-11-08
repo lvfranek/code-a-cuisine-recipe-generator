@@ -54,6 +54,24 @@ Use the absolute path to `uv` (`which uv`), because Claude Desktop does not load
 
 Then ask for example: *"I have chicken, rice and spinach. Find me a gluten-free recipe and tell me its calories per portion."*
 
+## Remote server (Streamable HTTP)
+
+The same tools run online at `https://cuisine-api.franekkaminski.dev/mcp`
+(`mcp_server/http.py`, service `mcp` in `docker-compose.yml`):
+
+- every request needs an API key: `Authorization: Bearer <key>` (or `X-API-Key: <key>`)
+- rate limit per key (default 500 requests/day, 60/minute) plus a global daily cap
+- stateless JSON responses, DNS-rebinding protection via allowed Host headers
+
+Connect from Claude Code:
+
+```bash
+claude mcp add --transport http code-a-cuisine https://cuisine-api.franekkaminski.dev/mcp \
+  --header "Authorization: Bearer <your-key>"
+```
+
+Any other MCP client that supports Streamable HTTP and custom headers works the same way.
+
 ## Data and licenses
 
 Recipes: Wikibooks Cookbook, CC BY-SA 4.0 (each result links to its source).

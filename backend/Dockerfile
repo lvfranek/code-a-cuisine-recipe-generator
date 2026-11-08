@@ -34,6 +34,7 @@ RUN python -m ingest.build_index
 
 COPY --chown=app core ./core
 COPY --chown=app api ./api
+COPY --chown=app mcp_server ./mcp_server
 
 EXPOSE 8000
 

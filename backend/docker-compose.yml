@@ -24,6 +24,30 @@ services:
     # Embedding model + vector index need a bit more memory than plain FastAPI.
     mem_limit: 1g
 
+  # Remote MCP server (Streamable HTTP) for AI assistants. Same image, own process.
+  # Caddy forwards https://<domain>/mcp to it. Needs MCP_API_KEYS and
+  # MCP_ALLOWED_HOSTS (your domain) in .env.
+  mcp:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      FORWARDED_ALLOW_IPS: "*"
+    command: ["uvicorn", "mcp_server.http:app", "--host", "0.0.0.0", "--port", "8001", "--proxy-headers", "--no-access-log"]
+    ports:
+      - "127.0.0.1:${MCP_PORT:-8003}:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+    mem_limit: 768m
+
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
