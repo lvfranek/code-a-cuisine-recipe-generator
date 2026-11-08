@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { progressState } from '../progress';
 
 const MESSAGES = [
   'Tasting your ingredients…',
@@ -8,8 +9,15 @@ const MESSAGES = [
   'Final garnish incoming…',
 ];
 
-export default function LoadingScreen() {
+function StageIcon({ done, active }) {
+  if (done) return <span className="loading-step-icon loading-step-icon--done" aria-hidden="true">✓</span>;
+  if (active) return <span className="loading-step-icon loading-step-icon--active" aria-hidden="true" />;
+  return <span className="loading-step-icon" aria-hidden="true" />;
+}
+
+export default function LoadingScreen({ progress = [] }) {
   const [msgIndex, setMsgIndex] = useState(0);
+  const live = progress.length > 0;
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -17,6 +25,9 @@ export default function LoadingScreen() {
     }, 2200);
     return () => clearInterval(id);
   }, []);
+
+  const { stages, revision } = progressState(progress);
+  const current = stages.find((s) => s.active);
 
   return (
     <div className="loading-screen" role="status" aria-label="Generating your recipes">
@@ -76,10 +87,35 @@ export default function LoadingScreen() {
 
       <div className="loading-text" aria-live="polite">
         <p className="loading-label">Code a <em>Cuisine</em></p>
-        <p className="loading-message" key={msgIndex}>
-          {MESSAGES[msgIndex]}
-        </p>
+        {live ? (
+          <p className="loading-message" key={current?.key || 'done'}>
+            {revision > 0 && current?.key === 'adapt' ? 'Fixing a diet issue…' : `${current?.label || 'Plating up'}…`}
+          </p>
+        ) : (
+          <p className="loading-message" key={msgIndex}>
+            {MESSAGES[msgIndex]}
+          </p>
+        )}
       </div>
+
+      {live && (
+        <ol className="loading-steps" aria-label="Progress">
+          {stages.map((s) => (
+            <li
+              key={s.key}
+              className={`loading-step${s.done ? ' loading-step--done' : ''}${s.active ? ' loading-step--active' : ''}`}
+            >
+              <StageIcon done={s.done} active={s.active} />
+              <span>{s.label}</span>
+            </li>
+          ))}
+          {revision > 0 && (
+            <li className="loading-step loading-step--note">
+              The diet check found an issue, so the chef is improving the recipes (round {revision} of 2).
+            </li>
+          )}
+        </ol>
+      )}
     </div>
   );
 }

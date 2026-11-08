@@ -10,12 +10,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import ValidationError
 
 from core.config import get_settings
-from core.agents.graph import generate_recipes
-from core.ratelimit import create_rate_limiter, hash_ip
+from core.agents.graph import generate_recipes, stream_recipes
+from core.ratelimit import RateLimitResult, create_rate_limiter, hash_ip
 from core.retrieval import embed
 from core.schemas import MAX_BODY_BYTES, GenerateRequest
 
@@ -59,6 +59,7 @@ limiter = create_rate_limiter(
 )
 
 BASE_HEADERS = {"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"}
+GENERATION_FAILED = "Could not generate recipes right now. Please try again."
 
 
 def error_response(status: int, message: str, headers: dict | None = None, **extra) -> JSONResponse:
@@ -76,8 +77,8 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/generate")
-async def generate(request: Request) -> JSONResponse:
+async def check_request(request: Request) -> tuple[GenerateRequest, RateLimitResult] | JSONResponse:
+    """Shared checks for both generate endpoints: header, size, JSON, schema, rate limit."""
     # Trims drive-by bot traffic. Not a security boundary; the rate limit is.
     if request.headers.get("x-cac-client") != "web":
         return error_response(403, "Forbidden")
@@ -108,14 +109,55 @@ async def generate(request: Request) -> JSONResponse:
     limit = await limiter.check(hash_ip(client_ip))
     if not limit.ok:
         return error_response(429, limit.error, {"Retry-After": str(limit.retry_after)}, scope=limit.scope)
+    return payload, limit
+
+
+@app.post("/generate")
+async def generate(request: Request) -> JSONResponse:
+    """All recipes at once (JSON). Kept for compatibility and simple clients."""
+    checked = await check_request(request)
+    if isinstance(checked, JSONResponse):
+        return checked
+    payload, limit = checked
 
     try:
         result = await generate_recipes(payload)
     except Exception:
         log.exception("Recipe generation failed")
-        return error_response(502, "Could not generate recipes right now. Please try again.")
+        return error_response(502, GENERATION_FAILED)
 
     return JSONResponse(
         result.model_dump(exclude_none=True),
         headers={**BASE_HEADERS, "X-RateLimit-Remaining": str(limit.remaining)},
     )
+
+
+def sse(event: str, data: dict) -> str:
+    """One Server-Sent Event."""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@app.post("/generate/stream")
+async def generate_stream(request: Request):
+    """Same as /generate, but streams progress as Server-Sent Events:
+    `step` after every agent, `revision` when recipes go back to the chef,
+    then `result` (the recipes) or `error`."""
+    checked = await check_request(request)
+    if isinstance(checked, JSONResponse):
+        return checked
+    payload, limit = checked
+
+    async def events():
+        try:
+            async for event, data in stream_recipes(payload):
+                yield sse(event, data)
+        except Exception:
+            log.exception("Recipe generation failed (stream)")
+            yield sse("error", {"error": GENERATION_FAILED})
+
+    headers = {
+        **BASE_HEADERS,
+        "X-RateLimit-Remaining": str(limit.remaining),
+        "X-Accel-Buffering": "no",  # tell proxies not to buffer the stream
+    }
+    return StreamingResponse(events(), media_type="text/event-stream", headers=headers)

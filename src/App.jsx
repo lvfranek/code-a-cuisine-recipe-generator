@@ -117,16 +117,20 @@ function Footer({ onNavigate }) {
 
 function GeneratorFlow({ screen, setScreen, ingredients, setIngredients, preferences, setPreferences, recipes, setRecipes }) {
   const [genError, setGenError] = useState('');
+  const [progress, setProgress] = useState([]);
 
   const handleGenerate = async () => {
     setGenError('');
+    setProgress([]);
     setScreen('loading');
     const payload = {
       ingredients: ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
       ...preferences,
     };
     try {
-      const data = await generateRecipes(payload);
+      const data = await generateRecipes(payload, {
+        onProgress: (event) => setProgress((events) => [...events, event]),
+      });
       if (!data?.recipes?.length) throw new Error('No recipes were returned. Please try again.');
       setRecipes(data.recipes);
       setScreen('results');
@@ -146,7 +150,7 @@ function GeneratorFlow({ screen, setScreen, ingredients, setIngredients, prefere
   };
 
   if (screen === 'loading') {
-    return <LoadingScreen />;
+    return <LoadingScreen progress={progress} />;
   }
 
   const stepNum = screen === 'preferences' ? 2 : screen === 'ingredients' ? 1 : null;

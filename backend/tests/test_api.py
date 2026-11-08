@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -98,3 +100,49 @@ def test_cors_blocks_other_sites(client):
         headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},
     )
     assert "access-control-allow-origin" not in res.headers
+
+
+# ------------------------------ streaming ------------------------------
+
+
+def parse_sse(text):
+    events = []
+    for block in text.strip().split("\n\n"):
+        lines = dict(line.split(": ", 1) for line in block.splitlines())
+        events.append((lines["event"], json.loads(lines["data"])))
+    return events
+
+
+def test_stream_sends_steps_then_result(client, monkeypatch):
+    async def fake_stream(req):
+        yield "step", {"step": "input_agent", "status": "done"}
+        yield "step", {"step": "retriever", "status": "done"}
+        yield "result", FAKE_RESULT.model_dump(exclude_none=True)
+
+    monkeypatch.setattr(main, "stream_recipes", fake_stream)
+    res = client.post("/generate/stream", json=BODY, headers=HEADERS)
+
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/event-stream")
+    assert res.headers["X-RateLimit-Remaining"] == "14"
+    events = parse_sse(res.text)
+    assert [e for e, _ in events] == ["step", "step", "result"]
+    assert events[-1][1]["recipes"][0]["name"] == "Soup"
+
+
+def test_stream_failure_sends_error_event(client, monkeypatch):
+    async def broken(req):
+        yield "step", {"step": "input_agent", "status": "done"}
+        raise LLMError("boom")
+
+    monkeypatch.setattr(main, "stream_recipes", broken)
+    events = parse_sse(client.post("/generate/stream", json=BODY, headers=HEADERS).text)
+
+    assert events[-1][0] == "error"
+    assert "boom" not in events[-1][1]["error"]  # internal details stay in the server log
+
+
+def test_stream_checks_requests_like_generate(client):
+    assert client.post("/generate/stream", json=BODY).status_code == 403
+    res = client.post("/generate/stream", json={"ingredients": []}, headers=HEADERS)
+    assert res.status_code == 400 and res.json()["error"] == "Add at least one ingredient."

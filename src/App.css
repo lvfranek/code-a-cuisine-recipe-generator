@@ -870,6 +870,75 @@
   text-transform: uppercase;
 }
 
+/* Live progress of the AI agents (only with the Python backend) */
+.loading-steps {
+  list-style: none;
+  margin: -16px 0 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.loading-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  opacity: 0.55;
+  transition: opacity 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+.loading-step--active {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.loading-step--done {
+  opacity: 0.85;
+}
+
+.loading-step--note {
+  opacity: 1;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--accent);
+  padding-left: 30px;
+  animation: msgIn 0.4s var(--ease) both;
+}
+
+.loading-step-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.loading-step-icon--done {
+  border-color: var(--herb);
+  background: var(--herb);
+  color: var(--white);
+}
+
+.loading-step-icon--active {
+  border-color: var(--accent);
+  border-top-color: transparent;
+  animation: stepSpin 0.9s linear infinite;
+}
+
+@keyframes stepSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ===== RESULTS PAGE ===== */
 .results {
   padding-top: 52px;

@@ -38,7 +38,11 @@ export default function RecipeCard({ recipe, index = 0 }) {
 
         {recipe.nutrition && (
           <div className="nutrition-block">
-            <p className="nutrition-note">Per portion</p>
+            <p className="nutrition-note">
+              Per portion
+              {recipe.nutritionSource === 'USDA' && ' · calculated from USDA data'}
+              {recipe.nutritionSource === 'estimate' && ' · estimated'}
+            </p>
             <div className="nutrition-row">
               <div className="nutrition-item">
                 <span className="nutrition-value">{recipe.nutrition.calories}</span>

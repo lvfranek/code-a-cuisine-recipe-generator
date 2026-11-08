@@ -277,3 +277,47 @@ def test_check_rules_flags_too_many_extras():
     ]})
     report = check_rules(result, [], ["potato"])
     assert report.problems[1][0][0] == "extra"
+
+
+# ------------------------------ streaming ------------------------------
+
+
+def collect(req=REQUEST):
+    async def go():
+        return [e async for e in graph.stream_recipes(req)]
+
+    return asyncio.run(go())
+
+
+def test_stream_reports_every_step_and_the_result(monkeypatch):
+    fake_llm(monkeypatch)
+    fake_search(monkeypatch)
+
+    events = collect()
+
+    steps = [d["step"] for e, d in events if e == "step"]
+    assert steps[:3] == ["input_agent", "retriever", "chef_agent"]
+    assert set(steps[3:5]) == {"diet_checker", "nutrition_agent"}
+    assert steps[5:] == ["review", "final"]
+    assert events[-1][0] == "result"
+    assert events[-1][1]["recipes"][0]["nutritionSource"] == "USDA"
+
+
+def test_stream_reports_revisions_and_failures(monkeypatch):
+    bad = answer(recipe("A", "wb-1", ingredients=("2 potatoes", "2 eggs")), recipe("B", "wb-2"), recipe("C", "wb-3"))
+    fake_llm(monkeypatch, input_answer="broken", adapt=(bad, ADAPT_OK))
+    fake_search(monkeypatch)
+
+    events = collect()
+
+    assert ("step", {"step": "input_agent", "status": "failed"}) in events
+    assert ("revision", {"round": 1, "problems": 1}) in events
+    assert events[-1][0] == "result"
+
+
+def test_stream_raises_when_nothing_works(monkeypatch):
+    fake_llm(monkeypatch, adapt=("broken",), create=("broken",))
+    fake_search(monkeypatch)
+
+    with pytest.raises(WorkflowError):
+        collect()

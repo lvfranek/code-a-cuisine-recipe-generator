@@ -377,6 +377,34 @@ def build_graph():
 workflow = build_graph()
 
 
+async def stream_recipes(req: GenerateRequest):
+    """Run the workflow and yield progress events as (event, data) tuples:
+
+    ("step", {"step": "retriever", "status": "done" | "failed"})  after every node
+    ("revision", {"round": 1, "problems": 2})                      when recipes go back to the chef
+    ("result", {"recipes": [...]})                                 at the end
+
+    Raises WorkflowError if no recipes could be produced.
+    """
+    errors: list[str] = []
+    final_result = None
+    async for chunk in workflow.astream({"request": req, "errors": [], "steps": []}, stream_mode="updates"):
+        for name, update in chunk.items():
+            update = update or {}
+            errors += update.get("errors") or []
+            failed = str(update.get("workflow_step", "")).endswith("_failed")
+            yield "step", {"step": name, "status": "failed" if failed else "done"}
+            if name == "review" and update.get("feedback"):
+                yield "revision", {"round": update.get("revisions", 1), "problems": len(update["feedback"])}
+            if update.get("final_result"):
+                final_result = update["final_result"]
+    if errors:
+        log.info("Workflow finished with recovered errors: %s", errors)
+    if final_result is None:
+        raise WorkflowError("; ".join(errors or ["unknown error"]))
+    yield "result", final_result.model_dump(exclude_none=True)
+
+
 async def generate_recipes(req: GenerateRequest) -> RecipesResponse:
     """Run the workflow. Raises WorkflowError if no recipes could be produced."""
     state = await workflow.ainvoke({"request": req, "errors": [], "steps": []})
