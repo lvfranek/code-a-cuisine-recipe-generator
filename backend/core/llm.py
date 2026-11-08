@@ -7,6 +7,7 @@ and, if that fails, asks the LLM to repair its own output (max N attempts).
 import json
 import logging
 import re
+from dataclasses import dataclass
 from typing import TypeVar
 
 import httpx
@@ -36,6 +37,29 @@ class RetryableLLMError(LLMError):
     """Temporary problem (rate limit, server error, network) worth retrying."""
 
 
+class OutOfCreditsError(LLMError):
+    """OpenRouter has no credits left (HTTP 402). Retrying does not help."""
+
+
+@dataclass
+class Usage:
+    """Running total of tokens and cost (USD, as reported by OpenRouter)."""
+
+    calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cost: float = 0.0
+
+    def add(self, data: dict) -> None:
+        self.calls += 1
+        self.prompt_tokens += int(data.get("prompt_tokens") or 0)
+        self.completion_tokens += int(data.get("completion_tokens") or 0)
+        self.cost += float(data.get("cost") or 0)
+
+
+usage = Usage()
+
+
 @retry(
     retry=retry_if_exception_type(RetryableLLMError),
     stop=stop_after_attempt(3),
@@ -43,17 +67,18 @@ class RetryableLLMError(LLMError):
     before_sleep=before_sleep_log(log, logging.WARNING),
     reraise=True,
 )
-async def chat(messages: list[dict], *, temperature: float | None = None) -> str:
+async def chat(messages: list[dict], *, temperature: float | None = None, model: str | None = None) -> str:
     """Send one chat request and return the text content of the answer."""
     s = get_settings()
     if not s.openrouter_api_key:
         raise LLMError("OPENROUTER_API_KEY is not configured")
 
     payload = {
-        "model": s.llm_model,
+        "model": model or s.llm_model,
         "temperature": s.llm_temperature if temperature is None else temperature,
         "max_tokens": s.llm_max_tokens,
         "messages": messages,
+        "usage": {"include": True},  # ask OpenRouter to report the cost
     }
     headers = {
         "Authorization": f"Bearer {s.openrouter_api_key}",
@@ -68,11 +93,15 @@ async def chat(messages: list[dict], *, temperature: float | None = None) -> str
 
     if res.status_code == 429 or res.status_code >= 500:
         raise RetryableLLMError(f"OpenRouter returned {res.status_code}: {res.text[:300]}")
+    if res.status_code == 402:
+        raise OutOfCreditsError("OpenRouter credits are used up (HTTP 402). Add credits or raise the key limit.")
     if res.status_code >= 400:
         raise LLMError(f"OpenRouter returned {res.status_code}: {res.text[:300]}")
 
     try:
-        content = res.json()["choices"][0]["message"]["content"]
+        data = res.json()
+        usage.add(data.get("usage") or {})
+        content = data["choices"][0]["message"]["content"]
     except (ValueError, KeyError, IndexError, TypeError) as err:
         raise RetryableLLMError(f"Unexpected OpenRouter response: {res.text[:300]}") from err
     if not content:
@@ -117,10 +146,16 @@ def build_repair_messages(bad_output: str, error: str, schema: type[BaseModel]) 
     ]
 
 
-async def complete_json(messages: list[dict], schema: type[T]) -> T:
+async def complete_json(
+    messages: list[dict],
+    schema: type[T],
+    *,
+    temperature: float | None = None,
+    model: str | None = None,
+) -> T:
     """Call the LLM, validate the answer, auto-repair it if needed (max N times)."""
     max_repairs = get_settings().max_repair_attempts
-    content = await chat(messages)
+    content = await chat(messages, temperature=temperature, model=model)
 
     for attempt in range(max_repairs + 1):
         try:
@@ -129,7 +164,7 @@ async def complete_json(messages: list[dict], schema: type[T]) -> T:
             if attempt == max_repairs:
                 raise LLMError(f"Invalid model output after {max_repairs} repair attempts: {err}") from err
             log.warning("LLM output invalid (repair %d/%d): %s", attempt + 1, max_repairs, _short(err))
-            content = await chat(build_repair_messages(content, str(err), schema), temperature=0)
+            content = await chat(build_repair_messages(content, str(err), schema), temperature=0, model=model)
 
     raise LLMError("unreachable")  # pragma: no cover
 

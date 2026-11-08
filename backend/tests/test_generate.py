@@ -41,7 +41,7 @@ def test_prompt_contains_user_input():
 def test_generate_adds_ids_portions_and_cuts_to_three(monkeypatch):
     answer = json.dumps({"recipes": [draft(f"R{i}") for i in range(4)]})
 
-    async def fake_chat(messages, *, temperature=None):
+    async def fake_chat(messages, **kwargs):
         return answer
 
     monkeypatch.setattr("core.llm.chat", fake_chat)

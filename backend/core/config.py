@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 6000
     llm_timeout_seconds: float = 90
     max_repair_attempts: int = 5
+    # Model for the one-off recipe import. Empty = same as llm_model.
+    ingest_model: str = ""
 
     # Shown to OpenRouter (attribution headers).
     app_url: str = "https://code-a-cuisine-three.vercel.app"

@@ -17,7 +17,7 @@ def fake_chat(answers):
     """Replace llm.chat with a function that returns the given answers in order."""
     calls = []
 
-    async def _chat(messages, *, temperature=None):
+    async def _chat(messages, **kwargs):
         calls.append(messages)
         return answers[len(calls) - 1]
 

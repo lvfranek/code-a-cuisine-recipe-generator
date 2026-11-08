@@ -11,7 +11,7 @@ Defined once here and reused everywhere (API, LLM validation, ingest, MCP).
 
 import math
 import re
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -188,3 +188,65 @@ class RecipesResponse(BaseModel):
     """Response body of the generate endpoint: `{"recipes": [...]}`."""
 
     recipes: list[Recipe]
+
+
+# --------------------------------------------------------------------------
+# Recipe database records (ingest -> recipes.jsonl -> ChromaDB)
+# --------------------------------------------------------------------------
+
+# Filter values for retrieval. Same lists as the frontend, without "Any"/"None",
+# so every stored value is one the user can actually pick.
+CUISINE_VALUES = tuple(c for c in CUISINES if c != "Any")
+DIET_VALUES = tuple(d for d in DIETS if d != "None")
+CuisineName = Literal[*CUISINE_VALUES]
+DietName = Literal[*DIET_VALUES]
+
+
+class RecipeIngredient(BaseModel):
+    """One ingredient line, original text plus a normalized name for search."""
+
+    text: str = Field(min_length=1, description="Original ingredient line, unchanged")
+    name: str = Field(min_length=1, max_length=60, description="Core ingredient, lowercase, singular, English")
+    quantity: float | None = Field(default=None, ge=0)
+    unit: str | None = Field(default=None, max_length=20)
+    optional: bool = False
+
+
+class RecipeExtraction(BaseModel):
+    """What the LLM extracts from a raw recipe text. Everything else is set in code."""
+
+    name: str = Field(min_length=1, max_length=120)
+    description: str = Field(min_length=1, max_length=400)
+    cuisine: CuisineName
+    dietTags: list[DietName] = Field(default_factory=list)
+    cookTimeMinutes: int = Field(ge=1, le=2880)
+    servings: int = Field(ge=1, le=100)
+    ingredients: list[RecipeIngredient] = Field(min_length=1)
+    instructions: list[str] = Field(min_length=1)
+
+    @field_validator("dietTags")
+    @classmethod
+    def _unique_tags(cls, tags: list[str]) -> list[str]:
+        return list(dict.fromkeys(tags))
+
+    @field_validator("instructions")
+    @classmethod
+    def _no_empty_steps(cls, steps: list[str]) -> list[str]:
+        steps = [s.strip() for s in steps if s and s.strip()]
+        if not steps:
+            raise ValueError("instructions must contain at least one non-empty step")
+        return steps
+
+
+class RecipeSource(BaseModel):
+    name: str
+    url: str
+    license: str
+
+
+class RecipeRecord(RecipeExtraction):
+    """One recipe in our database. `itemId` is unique and stable across re-runs."""
+
+    itemId: str
+    category: str | None = None
+    source: RecipeSource
