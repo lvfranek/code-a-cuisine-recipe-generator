@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { detectIngredients, photoSupported } from '../api';
+import { resizeImage } from '../imageResize';
 
 const UNITS = ['g', 'ml', 'oz', 'pcs', 'tsp', 'tbsp', 'cup'];
 const MAX_INGREDIENTS = 20;
@@ -16,6 +18,9 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
   const [unit, setUnit]           = useState('g');
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
+  const [scanning, setScanning]   = useState(false);
+  const [photoMsg, setPhotoMsg]   = useState('');
+  const [photoError, setPhotoError] = useState('');
 
   const atLimit = ingredients.length >= MAX_INGREDIENTS;
   const canAdd = name.trim().length > 0 && quantity !== '' && !atLimit;
@@ -29,6 +34,51 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
     setName('');
     setQuantity('');
     setUnit('g');
+  };
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow choosing the same photo again
+    if (!file || scanning) return;
+    setPhotoMsg('');
+    setPhotoError('');
+    setScanning(true);
+    try {
+      const image = await resizeImage(file);
+      const { ingredients: found = [], message } = await detectIngredients(image);
+      const existing = new Set(ingredients.map((i) => i.name.toLowerCase()));
+      const fresh = found.filter((f) => !existing.has(f.name.toLowerCase()));
+      const room = MAX_INGREDIENTS - ingredients.length;
+      const added = fresh.slice(0, room);
+
+      if (found.length === 0) {
+        setPhotoMsg(message || 'No food found in this photo. Try a closer, brighter photo.');
+      } else if (fresh.length === 0) {
+        setPhotoMsg('Everything in this photo is already on your list.');
+      } else {
+        const stamp = Date.now();
+        setIngredients((prev) => [
+          ...prev,
+          ...added.map((f, i) => ({
+            id: stamp + i,
+            name: String(f.name).slice(0, NAME_MAX),
+            quantity: Number(f.quantity),
+            unit: UNITS.includes(f.unit) ? f.unit : 'pcs',
+            fromPhoto: true,
+          })),
+        ]);
+        const notAdded = fresh.length - added.length;
+        setPhotoMsg(
+          `Added ${added.length} ingredient${added.length !== 1 ? 's' : ''} from your photo. ` +
+            'The amounts are rough guesses, please check them.' +
+            (notAdded > 0 ? ` ${notAdded} more didn't fit (max ${MAX_INGREDIENTS}).` : '')
+        );
+      }
+    } catch (err) {
+      setPhotoError(err.message || "Couldn't read the photo. Please try again or add ingredients by hand.");
+    } finally {
+      setScanning(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -50,7 +100,7 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
     setIngredients((prev) =>
       prev.map((i) =>
         i.id === id
-          ? { ...i, name: editValues.name.trim(), quantity: Number(editValues.quantity), unit: editValues.unit }
+          ? { ...i, name: editValues.name.trim(), quantity: Number(editValues.quantity), unit: editValues.unit, fromPhoto: false }
           : i
       )
     );
@@ -162,6 +212,37 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
           </div>
         </div>
 
+        {/* Fridge photo — needs the Python backend */}
+        {photoSupported && (
+          <div className="photo-scan">
+            <p className="photo-scan-divider"><span>or</span></p>
+            <label className={`btn btn--ghost photo-scan-btn${scanning || atLimit ? ' is-disabled' : ''}`}>
+              <input
+                type="file"
+                accept="image/*"
+                className="visually-hidden"
+                onChange={handlePhoto}
+                disabled={scanning || atLimit}
+              />
+              <svg className="photo-scan-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 8h3l2-3h6l2 3h3v11H4z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+                <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+              {scanning ? 'Looking at your photo…' : 'Scan a photo of your fridge'}
+            </label>
+            <p className="photo-scan-hint">
+              The photo is sent to our AI only to find ingredients and is never stored.
+            </p>
+            {photoMsg && <p className="photo-scan-result" role="status">{photoMsg}</p>}
+            {photoError && <p className="step-error" role="alert">{photoError}</p>}
+          </div>
+        )}
+
         {/* Ingredient list */}
         {ingredientCount > 0 && (
           <ul className="ingredient-list" role="list" aria-label="Added ingredients">
@@ -211,6 +292,7 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
                     <span className="ingredient-label">
                       <strong>{ingredient.name}</strong>
                       <span className="ingredient-qty">{ingredient.quantity} {ingredient.unit}</span>
+                      {ingredient.fromPhoto && <span className="ingredient-badge">from photo</span>}
                     </span>
                     <div className="ingredient-actions">
                       <button

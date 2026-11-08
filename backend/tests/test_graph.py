@@ -321,3 +321,28 @@ def test_stream_raises_when_nothing_works(monkeypatch):
 
     with pytest.raises(WorkflowError):
         collect()
+
+
+def test_false_critic_alarm_does_not_cause_a_revision(monkeypatch):
+    critic_wrong = json.dumps({"recipes": [{"index": 1, "problems": [{"diet": "Vegetarian", "issue": "contains honey"}]}]})
+    fake_search(monkeypatch)
+    req = REQUEST.model_copy(update={"dietPreferences": ["Vegetarian"]})
+    tagged = answer(recipe("A", "wb-1", tags=("Vegetarian",)), recipe("B", "wb-2"), recipe("C", "wb-3"))
+    calls = fake_llm(monkeypatch, adapt=(tagged,), critic=(critic_wrong,))
+
+    state = asyncio.run(graph.workflow.ainvoke({"request": req, "errors": [], "steps": []}))
+
+    assert calls.count("adapt") == 1
+    assert "Vegetarian" in state["final_result"].recipes[0].dietTags
+
+
+def test_misleading_name_breaks_the_diet_too(monkeypatch):
+    named = answer(recipe("Chicken Salad Sandwich", "wb-1", ingredients=("2 slices bread", "3 tomatoes"), tags=("Vegetarian",)), recipe("B", "wb-2"), recipe("C", "wb-3"))
+    calls = fake_llm(monkeypatch, adapt=(named, ADAPT_OK))
+    fake_search(monkeypatch)
+    req = REQUEST.model_copy(update={"dietPreferences": ["Vegetarian"]})
+
+    state = asyncio.run(graph.workflow.ainvoke({"request": req, "errors": [], "steps": []}))
+
+    assert calls.count("adapt") == 2  # sent back to the chef
+    assert state["final_result"].recipes[0].name == "A"

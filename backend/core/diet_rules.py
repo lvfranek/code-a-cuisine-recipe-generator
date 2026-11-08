@@ -92,3 +92,27 @@ def violations(lines: list[str], diet: str) -> list[str]:
         if text and (m := pattern.search(text)):
             found.append(f'"{line}" ({m.group(1)})')
     return found
+
+
+# Ingredients that are explicitly fine for a diet. Used to drop false alarms of
+# the LLM critic (e.g. "honey breaks Vegetarian").
+ALLOWED: dict[str, list[str]] = {
+    "Vegetarian": ["honey", "egg", "eggs", "milk", "butter", "cheese", "cream", "yogurt", "yoghurt", "dairy", "ghee"],
+    "Gluten-Free": ["dairy", "milk", "butter", "cheese", "cream", "egg", "eggs", "rice", "corn", "potato", "meat", "honey"],
+    "Dairy-Free": ["egg", "eggs", "honey", "coconut milk", "almond milk", "oat milk", "soy milk"],
+    "Keto": ["butter", "cheese", "cream", "dairy", "egg", "eggs", "meat", "bacon", "oil"],
+    "Low-Carb": ["butter", "cheese", "cream", "dairy", "egg", "eggs", "meat", "bacon", "oil"],
+    "Paleo": ["honey", "egg", "eggs", "meat", "fish", "sweet potato"],
+}
+
+
+def is_false_alarm(diet: str, issue: str) -> bool:
+    """True if the issue only names ingredients that the diet allows."""
+    text = issue.lower()
+    allowed = ALLOWED.get(diet, [])
+    if not any(re.search(rf"\b{re.escape(a)}\b", text) for a in allowed):
+        return False
+    forbidden = RULES.get(diet, [])
+    for a in sorted(allowed, key=len, reverse=True):
+        text = re.sub(rf"\b{re.escape(a)}\b", " ", text)
+    return not any(re.search(rf"\b{re.escape(w)}\b", text) for w in forbidden)

@@ -19,6 +19,20 @@ async function errorFrom(res) {
   return new Error(body.error || body.detail || `Request failed (${res.status})`);
 }
 
+// Fridge photos need the Python backend (the old Vercel function cannot do it).
+export const photoSupported = Boolean(API_URL);
+
+// Sends a (resized) photo, returns { ingredients: [{ name, quantity, unit }], message? }.
+export async function detectIngredients(imageBlob) {
+  const res = await fetch(`${API_URL}/detect-ingredients`, {
+    method: "POST",
+    headers: { "Content-Type": imageBlob.type || "image/jpeg", "X-CAC-Client": "web" },
+    body: imageBlob,
+  });
+  if (!res.ok) throw await errorFrom(res);
+  return res.json();
+}
+
 async function generateLegacy(payload) {
   const res = await fetch("/api/generate", {
     method: "POST",

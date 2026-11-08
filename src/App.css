@@ -513,6 +513,93 @@
   flex-wrap: wrap;
 }
 
+/* Fridge photo scan (Step 1) */
+.photo-scan {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.photo-scan-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.photo-scan-divider::before,
+.photo-scan-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.photo-scan-btn {
+  position: relative;
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.photo-scan-btn:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.photo-scan-btn.is-disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.photo-scan-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.photo-scan-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.photo-scan-result {
+  font-size: 0.82rem;
+  color: var(--herb);
+  line-height: 1.5;
+  animation: msgIn 0.4s var(--ease) both;
+}
+
+.ingredient-badge {
+  margin-left: 8px;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--herb);
+  border: 1px solid var(--herb);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ingredient-list {
   list-style: none;
   margin-top: 24px;

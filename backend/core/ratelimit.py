@@ -7,7 +7,9 @@ IPs are stored only as a short hash, never in plain text.
 """
 
 import hashlib
+import hmac
 import logging
+import secrets
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -31,8 +33,15 @@ class RateLimitResult:
     error: str = ""
 
 
+# Random key that only lives in memory. A plain hash of an IPv4 address could be
+# reversed by trying all ~4 billion addresses; with this secret it cannot.
+# A restart creates a new key (counters start fresh), which is fine for a demo.
+_IP_HASH_KEY = secrets.token_bytes(32)
+
+
 def hash_ip(ip: str) -> str:
-    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+    """Short keyed one-way hash of an IP address. The plain IP is never stored."""
+    return hmac.new(_IP_HASH_KEY, ip.encode(), hashlib.sha256).hexdigest()[:16]
 
 
 def seconds_until_utc_midnight(now: float) -> int:

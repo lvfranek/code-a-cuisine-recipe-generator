@@ -81,7 +81,8 @@ TASKS: dict[str, dict] = {
             "(salt, pepper, oil, water, basic spices). Replace or leave out what the user does not have.",
             "Respect every dietary requirement strictly; replace ingredients that break it.",
             "Scale amounts to the requested portions and aim for the target cooking time.",
-            "You may rename the dish to reflect your changes.",
+            "You may rename the dish to reflect your changes. The name must match the ingredients "
+            '(no "Chicken ..." without chicken).',
             "Write everything in English, also when the user's ingredients are in another language "
             "(use the English search terms given).",
             "Every recipe must be a complete dish built around the user's main ingredients.",
@@ -110,7 +111,7 @@ TASKS: dict[str, dict] = {
 
 DIET_DEFINITIONS = {
     "Vegan": "no animal products at all: no meat, fish, seafood, eggs, dairy, honey or gelatin.",
-    "Vegetarian": "no meat, poultry, fish, seafood or gelatin. Eggs and dairy are allowed.",
+    "Vegetarian": "no meat, poultry, fish, seafood or gelatin. Eggs, dairy and honey ARE vegetarian.",
     "Gluten-Free": "no wheat, barley, rye or spelt, and nothing made from them (bread, pasta, flour, "
     "regular soy sauce, most stock cubes, beer). Dairy, eggs, meat, rice and corn are allowed.",
     "Dairy-Free": "no milk products (milk, butter, cheese, cream, yogurt, ghee). Eggs are allowed.",

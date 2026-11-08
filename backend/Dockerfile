@@ -42,4 +42,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # --proxy-headers: read the real client IP from the reverse proxy (X-Forwarded-For).
 # Which proxies are trusted is set via FORWARDED_ALLOW_IPS in docker-compose.yml.
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# --no-access-log: do not write visitors' IP addresses into the container logs.
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--no-access-log"]

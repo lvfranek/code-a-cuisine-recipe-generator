@@ -4,7 +4,7 @@ export default function PrivacyPage({ onNavigate }) {
       <div className="legal-hero">
         <p className="legal-eyebrow">Legal</p>
         <h1 className="legal-title">Privacy Policy</h1>
-        <p className="legal-subtitle">Last updated: June 2026</p>
+        <p className="legal-subtitle">Last updated: November 2026</p>
       </div>
 
       <div className="legal-content">
@@ -25,6 +25,18 @@ export default function PrivacyPage({ onNavigate }) {
               <strong>Ingredients and preferences</strong> — the ingredients, portion sizes,
               cooking time preferences, cuisine types, and dietary restrictions you enter to
               generate a recipe. This data is sent to our AI model to produce your results.
+            </li>
+            <li>
+              <strong>Fridge photos (optional)</strong> — if you choose to scan a photo, it is
+              resized in your browser and sent to our server and our AI provider only to recognise
+              the ingredients in it. The photo is processed in memory and is never stored by us.
+              Please do not photograph people or personal documents.
+            </li>
+            <li>
+              <strong>Technical data for abuse protection</strong> — to enforce daily usage limits,
+              our server keeps a short code derived from your IP address with a secret random key,
+              together with a request counter. Your IP address itself is not stored, the code cannot
+              be turned back into it, and it is deleted automatically after about one day.
             </li>
             <li>
               <strong>Usage data</strong> — basic anonymised analytics such as page visits
@@ -49,10 +61,13 @@ export default function PrivacyPage({ onNavigate }) {
         <section className="legal-section">
           <h2>4. AI Processing</h2>
           <p>
-            Ingredient and preference data you submit is processed by our AI provider to generate
-            recipe content. This processing takes place on secure servers. We require our AI
-            providers to adhere to appropriate data protection standards and not use your
-            submissions to train their models without consent.
+            Ingredient and preference data, and fridge photos if you choose to scan one, are
+            processed by our own server and forwarded to our AI provider (OpenRouter, which passes
+            requests to the underlying model provider) to recognise ingredients and generate recipe
+            content. These providers may be located outside the European Union. We only send what
+            is needed for your request and require our AI providers to adhere to appropriate data
+            protection standards and not use your submissions to train their models without
+            consent.
           </p>
         </section>
 
@@ -69,8 +84,8 @@ export default function PrivacyPage({ onNavigate }) {
         <section className="legal-section">
           <h2>6. Data Retention</h2>
           <p>
-            Session data (ingredients and preferences) is not stored on our servers after your
-            recipe is generated. Anonymised analytics data may be retained for up to 12 months.
+            Session data (ingredients, preferences and photos) is not stored on our servers after
+            your request has been processed. Usage counters are deleted automatically after about one day. Anonymised analytics data may be retained for up to 12 months.
           </p>
         </section>
 

@@ -224,10 +224,12 @@ def check_rules(result: RecipesResponse, required: list[str], user_terms: list[s
     """Code rules: required diets, wrongly claimed diet tags, too many extra ingredients."""
     report = DietReport()
     for i, recipe in enumerate(result.recipes, start=1):
+        # The name counts too: "Chicken Sandwich" must not be served as vegetarian.
+        lines = [recipe.name, *recipe.ingredients]
         for diet in required:
-            for v in diet_rules.violations(recipe.ingredients, diet):
+            for v in diet_rules.violations(lines, diet):
                 report.add(i, diet, f"breaks {diet}: {v}")
-        wrong = {t for t in recipe.dietTags if t in DIET_VALUES and diet_rules.violations(recipe.ingredients, t)}
+        wrong = {t for t in recipe.dietTags if t in DIET_VALUES and diet_rules.violations(lines, t)}
         if wrong:
             report.wrong_tags[i] = wrong
         extras = extra_ingredients(recipe.ingredients, user_terms)
@@ -264,8 +266,12 @@ async def diet_checker(state: RecipeState) -> dict:
     for entry in critique.recipes:
         if 1 <= entry.index <= len(result.recipes):
             for p in entry.problems:
-                if p.diet in required:
-                    report.add(entry.index, p.diet, f"breaks {p.diet}: {p.issue}")
+                if p.diet not in required:
+                    continue
+                if diet_rules.is_false_alarm(p.diet, p.issue):
+                    log.info("Ignored false diet alarm (%s): %s", p.diet, p.issue)
+                    continue
+                report.add(entry.index, p.diet, f"breaks {p.diet}: {p.issue}")
     return {"diet_report": report}
 
 
