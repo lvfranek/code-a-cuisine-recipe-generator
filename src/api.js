@@ -1,8 +1,12 @@
-// Calls the Vercel serverless function at /api/generate, which proxies to
-// OpenRouter with the server-side OPENROUTER_API_KEY. The Vite dev server runs
-// the same function locally, so this works with `npm run dev` too.
+// Calls the recipe backend.
+// - VITE_API_URL set (e.g. http://localhost:8000): the Python backend's /generate.
+// - VITE_API_URL empty: the old Vercel function at /api/generate (also runs
+//   locally through the Vite dev server).
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const GENERATE_URL = API_URL ? `${API_URL}/generate` : "/api/generate";
+
 export async function generateRecipes(payload) {
-  const res = await fetch("/api/generate", {
+  const res = await fetch(GENERATE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

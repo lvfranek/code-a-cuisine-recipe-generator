@@ -1,12 +1,152 @@
 """Pydantic models shared by the whole backend.
 
 Defined once here and reused everywhere (API, LLM validation, ingest, MCP).
-The shape matches what `api/generate.js` returns today, so the frontend
-(RecipeCard, ResultsPage, Recipe Book) keeps working unchanged.
-New optional fields may be added later; existing ones must not change.
+
+- Request side: `GenerateRequest` cleans and limits user input the same way
+  `lib/validate.js` does (lenient: bad values fall back to defaults).
+- Response side: `Recipe` matches what `api/generate.js` returns today, so the
+  frontend (RecipeCard, ResultsPage, Recipe Book) keeps working unchanged.
+  New optional fields may be added later; existing ones must not change.
 """
 
-from pydantic import BaseModel, Field
+import math
+import re
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
+
+# --------------------------------------------------------------------------
+# Allowed values and limits (keep in sync with the frontend)
+# --------------------------------------------------------------------------
+
+MAX_BODY_BYTES = 10 * 1024
+MAX_INGREDIENTS = 20
+INGREDIENT_NAME_MAX = 50
+MAX_QUANTITY = 100_000
+MAX_PORTIONS = 20
+MAX_PEOPLE = 20
+
+UNITS = ("g", "ml", "oz", "pcs", "tsp", "tbsp", "cup")
+COOKING_TIMES = ("quick", "medium", "complex")
+CUISINES = (
+    "Any", "German", "Italian", "Indian", "Japanese", "Mexican",
+    "French", "Thai", "American", "Mediterranean", "Other",
+)
+DIETS = (
+    "None", "Vegan", "Vegetarian", "Keto",
+    "Gluten-Free", "Dairy-Free", "Low-Carb", "Paleo",
+)
+
+# Control characters could smuggle extra lines/instructions into the prompt.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]+")
+
+
+def clean_text(value: Any, max_len: int) -> str:
+    text = "" if value is None else str(value)
+    text = _CONTROL_CHARS.sub(" ", text)
+    return " ".join(text.split())[:max_len]
+
+
+def to_number(value: Any) -> float | None:
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    return n if math.isfinite(n) else None
+
+
+def clamp_int(value: Any, low: int, high: int, fallback: int) -> int:
+    n = to_number(value)
+    if n is None:
+        return fallback
+    return min(high, max(low, math.floor(n + 0.5)))
+
+
+def pick_from_list(values: Any, allowed: tuple[str, ...]) -> list[str]:
+    """Keep only allowed values, without duplicates, in input order."""
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    for v in values:
+        s = str(v)
+        if s in allowed and s not in out:
+            out.append(s)
+    return out
+
+
+# --------------------------------------------------------------------------
+# Request
+# --------------------------------------------------------------------------
+
+
+class Ingredient(BaseModel):
+    name: str
+    quantity: float = 0
+    unit: str = "g"
+
+
+class GenerateRequest(BaseModel):
+    """Cleaned body of POST /generate. Invalid optional values fall back to defaults."""
+
+    ingredients: list[Ingredient]
+    portions: int = 2
+    people: int = 2
+    cookingTime: str = "medium"
+    cuisines: list[str] = Field(default_factory=list)
+    dietPreferences: list[str] = Field(default_factory=list)
+
+    @field_validator("ingredients", mode="before")
+    @classmethod
+    def _clean_ingredients(cls, value: Any) -> list[dict]:
+        items = value if isinstance(value, list) else []
+        if len(items) > MAX_INGREDIENTS:
+            raise ValueError(f"Too many ingredients (max {MAX_INGREDIENTS}).")
+
+        cleaned = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = clean_text(item.get("name"), INGREDIENT_NAME_MAX)
+            if not name:
+                continue
+            quantity = to_number(item.get("quantity"))
+            quantity = min(quantity, MAX_QUANTITY) if quantity and quantity > 0 else 0
+            unit = str(item.get("unit"))
+            cleaned.append({"name": name, "quantity": quantity, "unit": unit if unit in UNITS else UNITS[0]})
+
+        if not cleaned:
+            raise ValueError("Add at least one ingredient.")
+        return cleaned
+
+    @field_validator("portions", mode="before")
+    @classmethod
+    def _clamp_portions(cls, value: Any) -> int:
+        return clamp_int(value, 1, MAX_PORTIONS, 2)
+
+    @field_validator("people", mode="before")
+    @classmethod
+    def _clamp_people(cls, value: Any) -> int:
+        return clamp_int(value, 1, MAX_PEOPLE, 2)
+
+    @field_validator("cookingTime", mode="before")
+    @classmethod
+    def _check_time(cls, value: Any) -> str:
+        return str(value) if str(value) in COOKING_TIMES else "medium"
+
+    @field_validator("cuisines", mode="before")
+    @classmethod
+    def _pick_cuisines(cls, value: Any) -> list[str]:
+        return pick_from_list(value, CUISINES)
+
+    @field_validator("dietPreferences", mode="before")
+    @classmethod
+    def _pick_diets(cls, value: Any) -> list[str]:
+        return pick_from_list(value, DIETS)
+
+
+# --------------------------------------------------------------------------
+# Recipes
+# --------------------------------------------------------------------------
 
 
 class Nutrition(BaseModel):
@@ -18,19 +158,30 @@ class Nutrition(BaseModel):
     fat: float = Field(default=0, ge=0)
 
 
-class Recipe(BaseModel):
-    """One recipe as the frontend expects it."""
+class RecipeDraft(BaseModel):
+    """A recipe without an id. This is what the LLM must return."""
 
-    id: int
-    name: str
+    name: str = Field(min_length=1)
     description: str = ""
     cookTime: str = "30 min"
     cuisine: str = "Various"
     dietTags: list[str] = Field(default_factory=list)
     portions: int = Field(default=2, ge=1)
     nutrition: Nutrition = Field(default_factory=Nutrition)
-    ingredients: list[str] = Field(default_factory=list)
-    instructions: list[str] = Field(default_factory=list)
+    ingredients: list[str] = Field(min_length=1)
+    instructions: list[str] = Field(min_length=1)
+
+
+class RecipeDrafts(BaseModel):
+    """LLM output for recipe generation: `{"recipes": [...]}`."""
+
+    recipes: list[RecipeDraft] = Field(min_length=1)
+
+
+class Recipe(RecipeDraft):
+    """One recipe as the frontend expects it."""
+
+    id: int
 
 
 class RecipesResponse(BaseModel):
