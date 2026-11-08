@@ -10,11 +10,16 @@ import logging
 import shutil
 import time
 
-from core.config import get_settings
+from core.config import BACKEND_DIR, get_settings
+from core.nutrition import COLLECTION as FOOD_COLLECTION
+from core.nutrition import upsert_foods
 from core.recipes import load_records
 from core.retrieval import COLLECTION, EMBEDDING_MODEL, get_client, get_collection, upsert_records
+from core.schemas import UsdaFood
 
 log = logging.getLogger("build_index")
+
+USDA_PATH = BACKEND_DIR / "data" / "usda_foods.jsonl"
 
 
 def backup_index() -> str | None:
@@ -43,15 +48,35 @@ def main() -> None:
             log.info("Aborted, nothing changed.")
             return
         log.info("Backup: %s", backup_index())
-        try:
-            get_client().delete_collection(COLLECTION)
-        except Exception:
-            pass  # collection did not exist
+        for name in (COLLECTION, FOOD_COLLECTION):
+            try:
+                get_client().delete_collection(name)
+            except Exception:
+                pass  # collection did not exist
 
     start = time.time()
     log.info("Embedding %d recipes with %s ...", len(records), EMBEDDING_MODEL)
     count = upsert_records(get_collection(create=True), records)
     log.info("Done in %.1fs: collection '%s' holds %d recipes (%s).", time.time() - start, COLLECTION, count, s.chroma_path)
+
+    foods = load_foods()
+    if not foods:
+        log.warning("No USDA foods in %s, skipping nutrition index. Run: uv run python -m ingest.usda", USDA_PATH)
+        return
+    start = time.time()
+    log.info("Embedding %d USDA foods ...", len(foods))
+    client = get_client()
+    collection = client.get_or_create_collection(
+        FOOD_COLLECTION, configuration={"hnsw": {"space": "cosine"}}, embedding_function=None
+    )
+    count = upsert_foods(collection, foods)
+    log.info("Done in %.1fs: collection '%s' holds %d foods.", time.time() - start, FOOD_COLLECTION, count)
+
+
+def load_foods() -> list[UsdaFood]:
+    if not USDA_PATH.exists():
+        return []
+    return [UsdaFood.model_validate_json(line) for line in USDA_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 if __name__ == "__main__":

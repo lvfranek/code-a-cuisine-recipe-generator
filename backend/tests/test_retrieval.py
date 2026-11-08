@@ -175,3 +175,16 @@ def test_rerank_weights_are_parameters():
     b = retrieval.SearchHit(RECORDS[1], similarity=0.5, coverage=0.9, matched=[], missing=[])
     assert rerank([a, b], w_similarity=1, w_coverage=0)[0] is a
     assert rerank([a, b], w_similarity=0, w_coverage=1)[0] is b
+
+
+def test_client_is_shared_per_index_folder(tmp_path, monkeypatch):
+    # Parallel requests must reuse one client; creating many concurrently breaks ChromaDB.
+    from concurrent.futures import ThreadPoolExecutor
+
+    from core.retrieval import get_client
+
+    monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "shared"))
+    get_settings.cache_clear()
+    with ThreadPoolExecutor(8) as pool:
+        clients = list(pool.map(lambda _: get_client(), range(16)))
+    assert all(c is clients[0] for c in clients)

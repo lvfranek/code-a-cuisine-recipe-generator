@@ -12,6 +12,7 @@ cosine distance. Index and queries always use the same `embed()` function.
 
 import logging
 import re
+import threading
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -98,10 +99,20 @@ def to_document(record: RecipeRecord) -> tuple[str, str, dict]:
 # --------------------------------------------------------------------------
 
 
+_client_lock = threading.Lock()
+_clients: dict[str, object] = {}
+
+
 def get_client():
+    """One shared client per index folder. Creating clients concurrently (parallel
+    requests in worker threads) breaks ChromaDB, so lookup + creation are locked."""
     import chromadb
 
-    return chromadb.PersistentClient(path=str(get_settings().chroma_path))
+    path = str(get_settings().chroma_path)
+    with _client_lock:
+        if path not in _clients:
+            _clients[path] = chromadb.PersistentClient(path=path)
+        return _clients[path]
 
 
 def get_collection(create: bool = False):

@@ -5,6 +5,7 @@ output schemas and conversion to the frontend format.
 
 import json
 import logging
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field, create_model, model_validator
@@ -103,17 +104,37 @@ def filter_steps(req: GenerateRequest) -> list[SearchFilters]:
     return unique
 
 
+# Basics (sauces, stocks, drinks ...) are poor templates for a meal.
+_BASIC = re.compile(
+    r"\b(sauce|dressing|mayonnaise|dip|stock|broth|marinade|condiment|chutney|salsa|pickle|pickled|"
+    r"frosting|icing|syrup|jam|jelly|beverage|drink|seasoning|spice mix)\b",
+    re.IGNORECASE,
+)
+
+
+def is_basic(hit: SearchHit) -> bool:
+    return bool(_BASIC.search(hit.record.category or "") or _BASIC.search(hit.record.name))
+
+
+def prefer_dishes(hits: list[SearchHit], k: int) -> list[SearchHit]:
+    """Real dishes first; basics only fill up if there are too few dishes."""
+    dishes = [h for h in hits if not is_basic(h)]
+    if len(dishes) >= MIN_CANDIDATES:
+        return dishes[:k]
+    return (dishes + [h for h in hits if is_basic(h)])[:k]
+
+
 def retrieve_candidates(req: GenerateRequest, terms: list[str] | None = None, k: int = CANDIDATE_COUNT) -> list[SearchHit]:
-    """Best real recipes for the request; relaxes filters until there are enough."""
+    """Best real recipes for the request; relaxes filters until there are enough dishes."""
     names = terms or [i.name for i in req.ingredients]
     best: list[SearchHit] = []
     for filters in filter_steps(req):
-        hits = search_recipes(names, filters, k=k)
-        if len(hits) >= MIN_CANDIDATES:
+        hits = prefer_dishes(search_recipes(names, filters, k=k * 2), k)
+        if len([h for h in hits if not is_basic(h)]) >= MIN_CANDIDATES:
             return hits
         if len(hits) > len(best):
             best = hits
-        log.info("Only %d candidates with %s, relaxing filters", len(hits), filters.to_where())
+        log.info("Only %d dish candidates with %s, relaxing filters", len(hits), filters.to_where())
     return best
 
 

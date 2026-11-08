@@ -17,20 +17,23 @@ WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY core ./core
-COPY api ./api
-COPY ingest ./ingest
-COPY data/recipes.jsonl ./data/recipes.jsonl
-
 # Run as non-root user.
-RUN useradd --create-home --uid 10001 app && chown -R app /app/data
+RUN useradd --create-home --uid 10001 app && mkdir -p /app/data && chown -R app /app
 USER app
-
-# Build the recipe vector index into the image. This also downloads the
-# small embedding model (all-MiniLM-L6-v2, ONNX, ~80 MB) into the image,
-# so the container needs no network access for search at runtime.
 ENV ANONYMIZED_TELEMETRY=False
+
+# Build the vector index (recipes + USDA foods) into the image. Only the files
+# the index needs are copied first, so changes to agents or the API reuse this
+# cached layer instead of re-embedding ~7,500 texts (several minutes).
+# This also downloads the small embedding model (all-MiniLM-L6-v2, ONNX, ~80 MB),
+# so the container needs no network access for search at runtime.
+COPY --chown=app core/__init__.py core/config.py core/schemas.py core/recipes.py core/retrieval.py core/nutrition.py ./core/
+COPY --chown=app ingest/__init__.py ingest/build_index.py ./ingest/
+COPY --chown=app data/recipes.jsonl data/usda_foods.jsonl ./data/
 RUN python -m ingest.build_index
+
+COPY --chown=app core ./core
+COPY --chown=app api ./api
 
 EXPOSE 8000
 

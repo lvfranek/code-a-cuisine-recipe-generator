@@ -141,3 +141,17 @@ def test_ingredient_terms_are_cleaned():
     with pytest.raises(ValidationError):
         IngredientTerms.model_validate({"ingredients": [" "]})
     assert json.loads(IngredientTerms(ingredients=["a"]).model_dump_json()) == {"ingredients": ["a"]}
+
+
+def test_dishes_are_preferred_over_basics(monkeypatch):
+    basics = [hit("wb-s", "Tomato Sauce"), hit("wb-d", "Basil Dressing")]
+    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: basics + HITS)
+    picked = retrieve_candidates(REQUEST)
+    assert [h.record.itemId for h in picked] == ["wb-1", "wb-2", "wb-3"]
+
+
+def test_basics_fill_up_when_dishes_are_rare(monkeypatch):
+    basics = [hit("wb-s", "Tomato Sauce")]
+    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: basics + HITS[:1])
+    picked = retrieve_candidates(REQUEST)
+    assert [h.record.itemId for h in picked] == ["wb-1", "wb-s"]

@@ -26,6 +26,22 @@ AGENTS: dict[str, dict[str, str]] = {
             "does not have beyond common pantry staples. You always answer with valid JSON."
         ),
     },
+    "diet_checker": {
+        "role": "Diet Inspector",
+        "goal": "Find ingredients that break the user's dietary requirements.",
+        "backstory": (
+            "You are a strict but fair dietitian. You know hidden animal products and hidden "
+            "gluten in everyday ingredients. You only report clear violations, never matters of taste."
+        ),
+    },
+    "nutrition_agent": {
+        "role": "Nutrition Analyst",
+        "goal": "Turn recipe ingredient lines into food names and weights in grams.",
+        "backstory": (
+            "You are a food scientist who knows typical weights of kitchen measures and ingredients. "
+            "You never calculate calories yourself; you only measure."
+        ),
+    },
 }
 
 INSTRUCTION_RULES = [
@@ -66,6 +82,9 @@ TASKS: dict[str, dict] = {
             "Respect every dietary requirement strictly; replace ingredients that break it.",
             "Scale amounts to the requested portions and aim for the target cooking time.",
             "You may rename the dish to reflect your changes.",
+            "Write everything in English, also when the user's ingredients are in another language "
+            "(use the English search terms given).",
+            "Every recipe must be a complete dish built around the user's main ingredients.",
             "dietTags: only tags that the adapted recipe really satisfies.",
             "nutrition: your best estimate per portion.",
             "basedOnId: the id in [brackets] of the candidate you adapted. Use each candidate at most once.",
@@ -77,6 +96,8 @@ TASKS: dict[str, dict] = {
         "agent": "chef_agent",
         "description": [
             "Create {count} distinct recipes that primarily use the user's ingredients.",
+            "Write everything in English, also when the user's ingredients are in another language "
+            "(use the English search terms given).",
             "Common pantry staples (salt, pepper, oil, water, basic spices) may be assumed.",
             "Respect every dietary requirement strictly.",
             "Scale amounts to the requested portions and aim for the target cooking time.",
@@ -84,6 +105,58 @@ TASKS: dict[str, dict] = {
         ],
         "expected_output": RECIPE_OUTPUT,
     },
+}
+
+
+DIET_DEFINITIONS = {
+    "Vegan": "no animal products at all: no meat, fish, seafood, eggs, dairy, honey or gelatin.",
+    "Vegetarian": "no meat, poultry, fish, seafood or gelatin. Eggs and dairy are allowed.",
+    "Gluten-Free": "no wheat, barley, rye or spelt, and nothing made from them (bread, pasta, flour, "
+    "regular soy sauce, most stock cubes, beer). Dairy, eggs, meat, rice and corn are allowed.",
+    "Dairy-Free": "no milk products (milk, butter, cheese, cream, yogurt, ghee). Eggs are allowed.",
+    "Keto": "very low carb: no sugar, honey, grains, bread, pasta, rice, potatoes, legumes or sweet fruit. "
+    "Meat, fish, eggs, dairy, butter, oils and low-carb vegetables are allowed.",
+    "Low-Carb": "no sugar and no larger amounts of bread, pasta, rice or potatoes. Dairy, meat and eggs are allowed.",
+    "Paleo": "no grains, legumes (incl. peanuts, soy), dairy or refined sugar. Meat, fish, eggs, "
+    "vegetables, fruit, nuts and honey are allowed.",
+}
+
+TASKS["check_diets"] = {
+    "agent": "diet_checker",
+    "description": [
+        "Check every recipe against ALL required diets: {diets}.",
+        "Use exactly these definitions:\n{definitions}",
+        "Report an issue only under the diet it really breaks by the definition above.",
+        "Look for hidden problems too: Worcestershire sauce contains anchovy, regular soy sauce and most "
+        "stock cubes contain wheat, gelatin is animal-based, honey is not vegan, butter and ghee are dairy. "
+        "Ignore animal rennet in cheese.",
+        "Only report clear violations. If an ingredient is fine or you are unsure, do not report it.",
+        "Ignore taste, style and missing ingredients.",
+    ],
+    "expected_output": (
+        'ONLY a JSON object, no markdown: {"recipes": [{"index": 1, "problems": '
+        '[{"diet": "Vegan", "issue": "contains honey"}]}, {"index": 2, "problems": []}]}. '
+        "One entry per recipe, index as given, diet must be one of the required diets."
+    ),
+}
+
+TASKS["measure_ingredients"] = {
+    "agent": "nutrition_agent",
+    "description": [
+        "For every ingredient line of every recipe, give the generic English food name as in a nutrition "
+        'database ("chicken breast", "olive oil", "tomato", "cheddar cheese") and its weight in grams '
+        "for the WHOLE recipe.",
+        "Use uncooked weights. Typical conversions: 1 tbsp = 15 g (oil 14 g), 1 tsp = 5 g, "
+        "1 cup liquid = 240 g, 1 cup flour = 125 g, 1 cup uncooked rice = 185 g, 1 medium onion = 110 g, "
+        "1 egg = 50 g, 1 clove garlic = 3 g, 1 medium potato = 170 g, 1 medium tomato = 120 g.",
+        "Salt, pepper and spices 'to taste' or 'a pinch' = 1 g. Water = 0 g.",
+        "If a line lists alternatives, use the first one.",
+    ],
+    "expected_output": (
+        'ONLY a JSON object, no markdown: {"recipes": [{"index": 1, "items": '
+        '[{"food": "tomato", "grams": 240}, {"food": "olive oil", "grams": 28}]}]}. '
+        "One entry per recipe, index as given."
+    ),
 }
 
 

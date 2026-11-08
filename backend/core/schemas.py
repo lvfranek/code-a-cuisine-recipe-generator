@@ -193,6 +193,8 @@ class Recipe(RecipeDraft):
 
     id: int
     basedOn: BasedOn | None = None
+    # "USDA" = calculated from USDA FoodData Central, "estimate" = LLM estimate.
+    nutritionSource: str | None = None
 
 
 class RecipesResponse(BaseModel):
@@ -281,3 +283,55 @@ class IngredientTerms(BaseModel):
         if not cleaned:
             raise ValueError("ingredients must contain at least one non-empty name")
         return cleaned
+
+
+# --------------------------------------------------------------------------
+# Nutrition (USDA FoodData Central)
+# --------------------------------------------------------------------------
+
+
+class UsdaPortion(BaseModel):
+    label: str
+    grams: float
+
+
+class UsdaFood(BaseModel):
+    """One generic food with nutrients per 100 g. `fdcId` is the stable id."""
+
+    fdcId: int
+    description: str
+    category: str
+    per100g: Nutrition
+    portions: list[UsdaPortion] = Field(default_factory=list)
+
+
+class DietProblem(BaseModel):
+    diet: str
+    issue: str = Field(min_length=1, max_length=300)
+
+
+class RecipeCritique(BaseModel):
+    index: int = Field(ge=1)
+    problems: list[DietProblem] = Field(default_factory=list)
+
+
+class DietCritique(BaseModel):
+    """diet_checker LLM output."""
+
+    recipes: list[RecipeCritique]
+
+
+class IngredientWeight(BaseModel):
+    food: str = Field(min_length=1, max_length=80)
+    grams: float = Field(ge=0, le=5000)
+
+
+class RecipeWeights(BaseModel):
+    index: int = Field(ge=1)
+    items: list[IngredientWeight]
+
+
+class IngredientWeights(BaseModel):
+    """nutrition_agent LLM output."""
+
+    recipes: list[RecipeWeights] = Field(min_length=1)
