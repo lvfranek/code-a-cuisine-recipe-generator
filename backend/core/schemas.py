@@ -261,3 +261,23 @@ class RecipeRecord(RecipeExtraction):
     itemId: str
     category: str | None = None
     source: RecipeSource
+
+
+# --------------------------------------------------------------------------
+# Agent outputs
+# --------------------------------------------------------------------------
+
+
+class IngredientTerms(BaseModel):
+    """input_agent output: clean English search terms."""
+
+    ingredients: list[str] = Field(min_length=1, max_length=40)
+
+    @field_validator("ingredients")
+    @classmethod
+    def _clean(cls, items: list[str]) -> list[str]:
+        cleaned = [clean_text(i, INGREDIENT_NAME_MAX).lower() for i in items]
+        cleaned = list(dict.fromkeys(i for i in cleaned if i))
+        if not cleaned:
+            raise ValueError("ingredients must contain at least one non-empty name")
+        return cleaned

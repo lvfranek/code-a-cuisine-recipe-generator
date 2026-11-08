@@ -1,18 +1,19 @@
-import asyncio
 import json
 
 import pytest
+from pydantic import ValidationError
 
 from core import generate
+from core.agents.config import AGENTS, TASKS, build_messages, build_task_prompt
 from core.generate import (
-    build_prompt,
-    build_rag_prompt,
+    adapted_schema,
+    candidates_context,
     filter_steps,
-    generate_recipes,
+    request_context,
     retrieve_candidates,
 )
-from core.retrieval import IndexNotReadyError, SearchHit
-from core.schemas import GenerateRequest, RecipeRecord
+from core.retrieval import SearchHit
+from core.schemas import GenerateRequest, IngredientTerms, RecipeRecord
 
 REQUEST = GenerateRequest.model_validate({
     "ingredients": [{"name": "Tomatoes", "quantity": 300, "unit": "g"}, {"name": "Basil"}],
@@ -21,23 +22,6 @@ REQUEST = GenerateRequest.model_validate({
     "cuisines": ["Any", "Italian"],
     "dietPreferences": ["Vegan"],
 })
-
-
-def draft(name, based_on=None):
-    d = {
-        "name": name,
-        "description": "Nice.",
-        "cookTime": "15 min",
-        "cuisine": "Italian",
-        "dietTags": ["Vegan"],
-        "portions": 1,  # wrong on purpose: must be replaced by the requested 4
-        "nutrition": {"calories": 300, "protein": 8, "carbs": 40, "fat": 9},
-        "ingredients": ["300 g tomatoes"],
-        "instructions": ["Chop.", "Serve."],
-    }
-    if based_on:
-        d["basedOnId"] = based_on
-    return d
 
 
 def hit(item_id, name="Tomato Salad"):
@@ -60,36 +44,47 @@ def hit(item_id, name="Tomato Salad"):
 HITS = [hit("wb-1", "Tomato Salad"), hit("wb-2", "Bruschetta"), hit("wb-3", "Pomodoro")]
 
 
-def fake_chat(answers, calls=None):
-    """Returns the answers in order (the last one repeats). Records calls if a list is given."""
-    calls = [] if calls is None else calls
-
-    async def _chat(messages, **kwargs):
-        calls.append(messages)
-        return answers[min(len(calls), len(answers)) - 1]
-
-    return _chat
+# --------------------------- agent config ---------------------------
 
 
-# ------------------------------ prompts ------------------------------
+def test_every_agent_and_task_is_complete():
+    for agent in AGENTS.values():
+        assert agent["role"] and agent["goal"] and agent["backstory"]
+    for task in TASKS.values():
+        assert task["description"] and task["expected_output"] and task["agent"] in AGENTS
 
 
-def test_free_prompt_contains_user_input():
-    prompt = build_prompt(REQUEST)
-    assert "- Tomatoes (300g)" in prompt
-    assert "- Basil\n" in prompt
-    assert "Portions per recipe: 4" in prompt
-    assert "about 15 minutes" in prompt
-    assert "Preferred cuisines: Italian" in prompt
-    assert "Dietary requirements (must respect all): Vegan" in prompt
+def test_messages_use_the_task_agent():
+    messages = build_messages("normalize_ingredients", "Ingredient list:\n- Kartoffeln")
+    assert messages[0]["content"].startswith("You are the Ingredient Analyst.")
+    assert "- Kartoffeln" in messages[1]["content"]
+    assert '{"ingredients":' in messages[1]["content"]  # JSON braces survive placeholder filling
 
 
-def test_rag_prompt_contains_candidates_and_ids():
-    prompt = build_rag_prompt(REQUEST, HITS, 3)
-    assert "[wb-1] Tomato Salad" in prompt and "[wb-3] Pomodoro" in prompt
-    assert "Ingredients: 2 tomatoes; basil leaves" in prompt
-    assert "User already has: tomato, basil" in prompt
-    assert '"basedOnId": "wb-1"' in prompt
+def test_task_prompt_fills_placeholders():
+    prompt = build_task_prompt("adapt_recipes", "ctx", count=3, example='{"name": "X"}')
+    assert "Pick the 3 best candidates" in prompt
+    assert "exactly 3 recipes" in prompt and '{"name": "X"}' in prompt
+    assert "{count}" not in prompt and "{example}" not in prompt
+
+
+# ------------------------------ context ------------------------------
+
+
+def test_request_context_contains_user_input():
+    ctx = request_context(REQUEST)
+    assert "- Tomatoes (300g)" in ctx and "- Basil" in ctx
+    assert "Portions per recipe: 4" in ctx
+    assert "about 15 minutes" in ctx
+    assert "Preferred cuisines: Italian" in ctx
+    assert "Dietary requirements (must respect all): Vegan" in ctx
+
+
+def test_candidates_context_contains_ids_and_matches():
+    ctx = candidates_context(HITS)
+    assert "[wb-1] Tomato Salad" in ctx and "[wb-3] Pomodoro" in ctx
+    assert "Ingredients: 2 tomatoes; basil leaves" in ctx
+    assert "User already has: tomato, basil" in ctx
 
 
 # ----------------------------- retrieval -----------------------------
@@ -117,62 +112,32 @@ def test_retrieve_relaxes_until_enough(monkeypatch):
     assert len(seen) == 3
 
 
-# ----------------------------- generation -----------------------------
+def test_retrieve_uses_search_terms(monkeypatch):
+    used = []
+    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: used.append(names) or HITS)
+    retrieve_candidates(REQUEST, ["tomato", "basil"])
+    assert used[0] == ["tomato", "basil"]
 
 
-def test_rag_generation_adds_real_source(monkeypatch):
-    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: HITS)
-    answer = json.dumps({"recipes": [draft("A", "wb-2"), draft("B", "wb-1"), draft("C", "wb-3")]})
-    monkeypatch.setattr("core.llm.chat", fake_chat([answer]))
-
-    result = asyncio.run(generate_recipes(REQUEST))
-
-    assert [r.id for r in result.recipes] == [1, 2, 3]
-    assert all(r.portions == 4 for r in result.recipes)
-    first = result.recipes[0].basedOn
-    assert first.name == "Bruschetta" and first.url == "https://wb/wb-2"  # from the database, not the LLM
-    assert first.license == "CC BY-SA 4.0"
+# ------------------------------ schemas ------------------------------
 
 
-def test_invented_source_id_is_repaired(monkeypatch):
-    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: HITS)
-    bad = json.dumps({"recipes": [draft("A", "wb-999")]})
-    good = json.dumps({"recipes": [draft("A", "wb-1")]})
-    calls = []
-    monkeypatch.setattr("core.llm.chat", fake_chat([bad, good], calls))
-
-    result = asyncio.run(generate_recipes(REQUEST))
-
-    assert len(calls) == 2  # original + one repair
-    assert result.recipes[0].basedOn.itemId == "wb-1"
+def draft(name, based_on):
+    return {"name": name, "ingredients": ["x"], "instructions": ["y"], "basedOnId": based_on}
 
 
-@pytest.mark.parametrize("problem", ["no-index", "no-hits"])
-def test_falls_back_to_free_generation(monkeypatch, problem):
-    def fake_search(names, filters, k):
-        if problem == "no-index":
-            raise IndexNotReadyError("missing")
-        return []
-
-    monkeypatch.setattr(generate, "search_recipes", fake_search)
-    answer = json.dumps({"recipes": [draft(f"R{i}") for i in range(4)]})
-    monkeypatch.setattr("core.llm.chat", fake_chat([answer]))
-
-    result = asyncio.run(generate_recipes(REQUEST))
-
-    assert [r.id for r in result.recipes] == [1, 2, 3]
-    assert all(r.basedOn is None for r in result.recipes)
-    assert generate.RECIPE_COUNT == 3
+def test_adapted_schema_only_accepts_real_ids_once():
+    schema = adapted_schema(["wb-1", "wb-2"])
+    schema.model_validate({"recipes": [draft("A", "wb-1"), draft("B", "wb-2")]})
+    with pytest.raises(ValidationError):
+        schema.model_validate({"recipes": [draft("A", "wb-999")]})
+    with pytest.raises(ValidationError, match="unique"):
+        schema.model_validate({"recipes": [draft("A", "wb-1"), draft("B", "wb-1")]})
 
 
-def test_same_template_twice_is_repaired(monkeypatch):
-    monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: HITS)
-    twice = json.dumps({"recipes": [draft("A", "wb-1"), draft("B", "wb-1")]})
-    fixed = json.dumps({"recipes": [draft("A", "wb-1"), draft("B", "wb-2")]})
-    calls = []
-    monkeypatch.setattr("core.llm.chat", fake_chat([twice, fixed], calls))
-
-    result = asyncio.run(generate_recipes(REQUEST))
-
-    assert len(calls) == 2
-    assert [r.basedOn.itemId for r in result.recipes] == ["wb-1", "wb-2"]
+def test_ingredient_terms_are_cleaned():
+    terms = IngredientTerms.model_validate({"ingredients": ["Potato", " potato ", "", "Chicken\nBreast"]})
+    assert terms.ingredients == ["potato", "chicken breast"]
+    with pytest.raises(ValidationError):
+        IngredientTerms.model_validate({"ingredients": [" "]})
+    assert json.loads(IngredientTerms(ingredients=["a"]).model_dump_json()) == {"ingredients": ["a"]}

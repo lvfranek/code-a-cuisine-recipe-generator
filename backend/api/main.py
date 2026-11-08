@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from core.config import get_settings
-from core.generate import generate_recipes
+from core.agents.graph import generate_recipes
 from core.ratelimit import create_rate_limiter, hash_ip
 from core.retrieval import embed
 from core.schemas import MAX_BODY_BYTES, GenerateRequest
