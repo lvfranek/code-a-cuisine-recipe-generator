@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # OpenRouter reasoning effort ("low" / "medium" / "high"). Empty = model default.
     # Lower = faster and cheaper answers from "thinking" models.
     llm_reasoning_effort: str = ""
+    # Model for fridge photos (must accept images). Empty = same as llm_model.
+    vision_model: str = ""
     # Model for the one-off recipe import (data/recipes.jsonl was built with it).
     ingest_model: str = "minimax/minimax-m3"
 
@@ -55,6 +57,10 @@ class Settings(BaseSettings):
     ratelimit_per_ip_daily: int = 15
     ratelimit_per_ip_burst: int = 5  # per 60 seconds
     ratelimit_global_daily: int = 300
+    # Fridge photos have their own (smaller) budget.
+    ratelimit_photo_per_ip_daily: int = 10
+    ratelimit_photo_per_ip_burst: int = 3
+    ratelimit_photo_global_daily: int = 150
 
     @property
     def chroma_path(self) -> Path:

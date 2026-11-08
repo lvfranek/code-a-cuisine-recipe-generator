@@ -18,6 +18,7 @@ from core.agents.graph import generate_recipes, stream_recipes
 from core.ratelimit import RateLimitResult, create_rate_limiter, hash_ip
 from core.retrieval import embed
 from core.schemas import MAX_BODY_BYTES, GenerateRequest
+from core.vision import MAX_IMAGE_BYTES, InvalidImageError, detect_image_type, detect_ingredients
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("api")
@@ -56,6 +57,14 @@ limiter = create_rate_limiter(
     per_ip_daily=settings.ratelimit_per_ip_daily,
     per_ip_burst=settings.ratelimit_per_ip_burst,
     global_daily=settings.ratelimit_global_daily,
+)
+
+photo_limiter = create_rate_limiter(
+    redis_url=settings.redis_url,
+    per_ip_daily=settings.ratelimit_photo_per_ip_daily,
+    per_ip_burst=settings.ratelimit_photo_per_ip_burst,
+    global_daily=settings.ratelimit_photo_global_daily,
+    prefix="photo",
 )
 
 BASE_HEADERS = {"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"}
@@ -161,3 +170,40 @@ async def generate_stream(request: Request):
         "X-Accel-Buffering": "no",  # tell proxies not to buffer the stream
     }
     return StreamingResponse(events(), media_type="text/event-stream", headers=headers)
+
+
+@app.post("/detect-ingredients")
+async def detect_ingredients_endpoint(request: Request) -> JSONResponse:
+    """Fridge photo (raw JPEG/PNG/WebP body) -> {"ingredients": [{name, quantity, unit}]}.
+    The image is processed in memory only and never stored."""
+    if request.headers.get("x-cac-client") != "web":
+        return error_response(403, "Forbidden")
+    declared = request.headers.get("content-length", "0")
+    if declared.isdigit() and int(declared) > MAX_IMAGE_BYTES:
+        return error_response(413, "The image is too large.")
+    if not get_settings().openrouter_api_key:
+        return error_response(500, "OPENROUTER_API_KEY is not configured")
+
+    data = await request.body()
+    try:
+        detect_image_type(data)  # cheap check before spending rate limit or LLM money
+    except InvalidImageError as err:
+        return error_response(413 if len(data) > MAX_IMAGE_BYTES else 415, str(err))
+
+    client_ip = request.client.host if request.client else "unknown"
+    limit = await photo_limiter.check(hash_ip(client_ip))
+    if not limit.ok:
+        return error_response(429, limit.error, {"Retry-After": str(limit.retry_after)}, scope=limit.scope)
+
+    try:
+        result = await detect_ingredients(data)
+    except Exception:
+        log.exception("Ingredient detection failed")
+        return error_response(502, "Could not read the photo right now. Please try again or add the ingredients by hand.")
+    finally:
+        del data  # do not keep the image around longer than needed
+
+    body = result.model_dump()
+    if not result.ingredients:
+        body["message"] = "No food found in this photo. Try a closer, brighter photo."
+    return JSONResponse(body, headers={**BASE_HEADERS, "X-RateLimit-Remaining": str(limit.remaining)})

@@ -121,6 +121,36 @@ DIET_DEFINITIONS = {
     "vegetables, fruit, nuts and honey are allowed.",
 }
 
+AGENTS["vision_agent"] = {
+    "role": "Fridge Scanner",
+    "goal": "List the food that is clearly visible in a photo, with a rough amount.",
+    "backstory": (
+        "You are a careful kitchen assistant with sharp eyes. You only describe what you can see "
+        "and you never invent or guess hidden items."
+    ),
+}
+
+TASKS["detect_ingredients"] = {
+    "agent": "vision_agent",
+    "description": [
+        "Describe only what you can see in the photo. Do not invent or guess anything that is not visible.",
+        "List each visible food item or cooking ingredient once, with its common English name, "
+        'singular, lowercase, without brand names ("milk", "egg", "tomato", "mustard", "soy sauce").',
+        "If you can read a label, you may use it for the type of food (e.g. \"almond milk\"), never for the brand.",
+        "Skip things you cannot identify with confidence: closed containers, boxes, cans or bottles whose "
+        "content you cannot tell, leftovers, drinks like beer or soda, and non-food items. Never list "
+        'generic words like "food container", "bottle", "jar" or "canned food".',
+        "Estimate a rough amount for each item with one of these units: g, ml, oz, pcs, tsp, tbsp, cup. "
+        "Count whole items in pcs (3 tomatoes -> 3 pcs, 2 eggs -> 2 pcs). Liquids in ml, estimated from the "
+        "container size (a milk jug -> 2000 ml, a sauce bottle -> 250 ml). Everything else in g.",
+        "At most 20 items, most useful for cooking first. If there is no food in the photo, return an empty list.",
+    ],
+    "expected_output": (
+        'ONLY a JSON object, no markdown: {"ingredients": [{"name": "tomato", "quantity": 3, "unit": "pcs"}, '
+        '{"name": "milk", "quantity": 1000, "unit": "ml"}]}'
+    ),
+}
+
 TASKS["check_diets"] = {
     "agent": "diet_checker",
     "description": [

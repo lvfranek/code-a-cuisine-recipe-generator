@@ -335,3 +335,44 @@ class IngredientWeights(BaseModel):
     """nutrition_agent LLM output."""
 
     recipes: list[RecipeWeights] = Field(min_length=1)
+
+
+# --------------------------------------------------------------------------
+# Fridge photo (vision)
+# --------------------------------------------------------------------------
+
+
+class DetectedIngredient(BaseModel):
+    """One visible food item, in the same format as Step 1 of the app."""
+
+    name: str = Field(min_length=1, max_length=INGREDIENT_NAME_MAX)
+    quantity: float = Field(gt=0, le=MAX_QUANTITY)
+    unit: Literal[*UNITS]
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _clean_name(cls, value: Any) -> str:
+        return clean_text(value, INGREDIENT_NAME_MAX)
+
+
+class DetectedIngredients(BaseModel):
+    """vision_agent output. An empty list is valid (no food in the photo)."""
+
+    ingredients: list[DetectedIngredient] = Field(default_factory=list, max_length=MAX_INGREDIENTS)
+
+    @field_validator("ingredients", mode="before")
+    @classmethod
+    def _limit(cls, items: Any) -> Any:
+        # Keep the first MAX_INGREDIENTS instead of failing (a full fridge can have more).
+        return items[:MAX_INGREDIENTS] if isinstance(items, list) else items
+
+    @field_validator("ingredients")
+    @classmethod
+    def _unique(cls, items: list[DetectedIngredient]) -> list[DetectedIngredient]:
+        seen, out = set(), []
+        for item in items:
+            key = item.name.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(item)
+        return out

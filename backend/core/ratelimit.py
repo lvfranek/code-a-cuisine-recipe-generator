@@ -58,7 +58,7 @@ class _Limits:
             return deny("burst", BURST_WINDOW_S, MSG_BURST)
         if ip_day > self.per_ip_daily:
             return deny("ip-daily", seconds_until_utc_midnight(now),
-                        f"Daily limit reached ({self.per_ip_daily} recipes per day). Try again tomorrow.")
+                        f"Daily limit reached ({self.per_ip_daily} per day). Try again tomorrow.")
         if global_count > self.global_daily:
             return deny("global-daily", seconds_until_utc_midnight(now), MSG_GLOBAL)
         return RateLimitResult(ok=True, remaining=max(0, self.per_ip_daily - ip_day))
@@ -95,16 +95,17 @@ class MemoryRateLimiter(_Limits):
 class RedisRateLimiter(_Limits):
     """Fixed-window counters via INCR/EXPIRE (same keys as the old Upstash version)."""
 
-    def __init__(self, redis, per_ip_daily: int, per_ip_burst: int, global_daily: int):
+    def __init__(self, redis, per_ip_daily: int, per_ip_burst: int, global_daily: int, prefix: str = "gen"):
         super().__init__(per_ip_daily, per_ip_burst, global_daily)
         self.redis = redis
+        self.prefix = prefix  # separate counters per endpoint type ("gen", "photo")
 
     async def check(self, ip_hash: str, now: float | None = None) -> RateLimitResult:
         now = time.time() if now is None else now
         day = utc_day(now)
-        ip_day_key = f"cac:gen:ip:{ip_hash}:{day}"
-        burst_key = f"cac:gen:burst:{ip_hash}"
-        global_key = f"cac:gen:global:{day}"
+        ip_day_key = f"cac:{self.prefix}:ip:{ip_hash}:{day}"
+        burst_key = f"cac:{self.prefix}:burst:{ip_hash}"
+        global_key = f"cac:{self.prefix}:global:{day}"
         try:
             pipe = self.redis.pipeline(transaction=True)
             pipe.incr(ip_day_key)
@@ -121,12 +122,12 @@ class RedisRateLimiter(_Limits):
         return self.decide(int(ip_day), int(burst), int(global_count), now)
 
 
-def create_rate_limiter(redis_url: str, per_ip_daily: int, per_ip_burst: int, global_daily: int):
+def create_rate_limiter(redis_url: str, per_ip_daily: int, per_ip_burst: int, global_daily: int, prefix: str = "gen"):
     """Redis if REDIS_URL is set, otherwise in-memory."""
     if redis_url:
         from redis.asyncio import Redis
 
         log.info("Rate limiting: Redis")
-        return RedisRateLimiter(Redis.from_url(redis_url), per_ip_daily, per_ip_burst, global_daily)
+        return RedisRateLimiter(Redis.from_url(redis_url), per_ip_daily, per_ip_burst, global_daily, prefix)
     log.info("Rate limiting: in-memory (set REDIS_URL to use Redis)")
     return MemoryRateLimiter(per_ip_daily, per_ip_burst, global_daily)
