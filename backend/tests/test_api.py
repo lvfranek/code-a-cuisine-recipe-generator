@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from api import main
 from core.llm import LLMError
-from core.ratelimit import RateLimiter
+from core.ratelimit import MemoryRateLimiter
 from core.schemas import RecipesResponse
 
 HEADERS = {"X-CAC-Client": "web"}
@@ -16,7 +16,7 @@ FAKE_RESULT = RecipesResponse.model_validate({
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_daily=15, per_ip_burst=5, global_daily=300))
+    monkeypatch.setattr(main, "limiter", MemoryRateLimiter(per_ip_daily=15, per_ip_burst=5, global_daily=300))
 
     async def fake_generate(req):
         return FAKE_RESULT
@@ -61,7 +61,7 @@ def test_body_too_large(client):
 
 
 def test_rate_limit(client, monkeypatch):
-    monkeypatch.setattr(main, "limiter", RateLimiter(per_ip_daily=1, per_ip_burst=5, global_daily=300))
+    monkeypatch.setattr(main, "limiter", MemoryRateLimiter(per_ip_daily=1, per_ip_burst=5, global_daily=300))
     assert client.post("/generate", json=BODY, headers=HEADERS).status_code == 200
     res = client.post("/generate", json=BODY, headers=HEADERS)
     assert res.status_code == 429

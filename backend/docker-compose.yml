@@ -1,0 +1,36 @@
+# Backend + Redis. Start from the backend/ folder:
+#   docker compose up -d --build
+#
+# The API is only reachable from the server itself (127.0.0.1). The reverse
+# proxy (HTTPS) forwards cuisine-api.franekkaminski.dev to it.
+
+name: code-a-cuisine
+
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      # The port is bound to 127.0.0.1 only, so every request comes through
+      # the local reverse proxy and its X-Forwarded-For header can be trusted.
+      FORWARDED_ALLOW_IPS: "*"
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    mem_limit: 512m
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # Only rate-limit counters live here: small memory cap, no disk snapshots.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "volatile-ttl"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 128m

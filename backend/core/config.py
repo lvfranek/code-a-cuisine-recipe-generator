@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Comma-separated list of frontend origins allowed by CORS.
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Redis for rate-limit counters. Empty = in-memory (local dev).
+    redis_url: str = ""
+
     # Rate limits (same defaults as the old Vercel function).
     ratelimit_per_ip_daily: int = 15
     ratelimit_per_ip_burst: int = 5  # per 60 seconds

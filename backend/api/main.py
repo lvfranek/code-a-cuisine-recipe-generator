@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 from core.config import get_settings
 from core.generate import generate_recipes
-from core.ratelimit import RateLimiter, hash_ip
+from core.ratelimit import create_rate_limiter, hash_ip
 from core.schemas import MAX_BODY_BYTES, GenerateRequest
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -37,7 +37,8 @@ app.add_middleware(
     max_age=600,
 )
 
-limiter = RateLimiter(
+limiter = create_rate_limiter(
+    redis_url=settings.redis_url,
     per_ip_daily=settings.ratelimit_per_ip_daily,
     per_ip_burst=settings.ratelimit_per_ip_burst,
     global_daily=settings.ratelimit_global_daily,
@@ -90,7 +91,7 @@ async def generate(request: Request) -> JSONResponse:
         return error_response(400, first_error_message(err))
 
     client_ip = request.client.host if request.client else "unknown"
-    limit = limiter.check(hash_ip(client_ip))
+    limit = await limiter.check(hash_ip(client_ip))
     if not limit.ok:
         return error_response(429, limit.error, {"Retry-After": str(limit.retry_after)}, scope=limit.scope)
 
