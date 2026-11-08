@@ -1,0 +1,2 @@
+# The Python backend runs on the VPS, not on Vercel.
+backend/
