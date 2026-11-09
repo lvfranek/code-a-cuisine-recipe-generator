@@ -1,0 +1,490 @@
+[
+  {
+    "id": "vegan-honey",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "tofu",
+      "broccoli",
+      "soy sauce",
+      "rice",
+      "honey"
+    ],
+    "trap": "honey"
+  },
+  {
+    "id": "vegan-butter",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "chickpeas",
+      "spinach",
+      "butter",
+      "onion",
+      "garlic"
+    ],
+    "trap": "butter"
+  },
+  {
+    "id": "vegan-parmesan",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "pasta",
+      "tomato",
+      "parmesan",
+      "basil",
+      "olive oil"
+    ],
+    "trap": "parmesan"
+  },
+  {
+    "id": "vegan-eggs",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "potatoes",
+      "eggs",
+      "onion",
+      "bell pepper"
+    ],
+    "trap": "eggs"
+  },
+  {
+    "id": "vegan-clean",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "lentils",
+      "carrot",
+      "coconut milk",
+      "curry powder",
+      "onion"
+    ],
+    "trap": null
+  },
+  {
+    "id": "vegetarian-broth",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "rice",
+      "chicken broth",
+      "mushrooms",
+      "onion",
+      "parmesan"
+    ],
+    "trap": "chicken broth"
+  },
+  {
+    "id": "vegetarian-bacon",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "bread",
+      "cheese",
+      "tomato",
+      "bacon"
+    ],
+    "trap": "bacon"
+  },
+  {
+    "id": "vegetarian-fishsauce",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "noodles",
+      "egg",
+      "cabbage",
+      "fish sauce",
+      "garlic"
+    ],
+    "trap": "fish sauce"
+  },
+  {
+    "id": "vegetarian-clean",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "black beans",
+      "corn",
+      "tortillas",
+      "avocado",
+      "cheese"
+    ],
+    "trap": null
+  },
+  {
+    "id": "glutenfree-soysauce",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "chicken breast",
+      "soy sauce",
+      "broccoli",
+      "rice",
+      "ginger"
+    ],
+    "trap": "soy sauce"
+  },
+  {
+    "id": "glutenfree-flour",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "beef",
+      "onion",
+      "flour",
+      "potatoes",
+      "carrots"
+    ],
+    "trap": "flour"
+  },
+  {
+    "id": "glutenfree-spaghetti",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "spaghetti",
+      "tomato",
+      "garlic",
+      "olive oil",
+      "basil"
+    ],
+    "trap": "spaghetti"
+  },
+  {
+    "id": "glutenfree-bread",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "eggs",
+      "bread",
+      "milk",
+      "cinnamon",
+      "butter"
+    ],
+    "trap": "bread"
+  },
+  {
+    "id": "glutenfree-clean",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "salmon",
+      "lemon",
+      "dill",
+      "potatoes"
+    ],
+    "trap": null
+  },
+  {
+    "id": "dairyfree-cream",
+    "diets": [
+      "Dairy-Free"
+    ],
+    "ingredients": [
+      "pasta",
+      "cream",
+      "mushrooms",
+      "garlic",
+      "parmesan"
+    ],
+    "trap": "cream, parmesan"
+  },
+  {
+    "id": "dairyfree-butter",
+    "diets": [
+      "Dairy-Free"
+    ],
+    "ingredients": [
+      "potatoes",
+      "butter",
+      "milk",
+      "chives"
+    ],
+    "trap": "butter, milk"
+  },
+  {
+    "id": "dairyfree-yogurt",
+    "diets": [
+      "Dairy-Free"
+    ],
+    "ingredients": [
+      "chicken breast",
+      "rice",
+      "yogurt",
+      "curry powder",
+      "onion"
+    ],
+    "trap": "yogurt"
+  },
+  {
+    "id": "dairyfree-milk",
+    "diets": [
+      "Dairy-Free"
+    ],
+    "ingredients": [
+      "oats",
+      "banana",
+      "milk",
+      "honey"
+    ],
+    "trap": "milk"
+  },
+  {
+    "id": "keto-bread",
+    "diets": [
+      "Keto"
+    ],
+    "ingredients": [
+      "eggs",
+      "bacon",
+      "cheese",
+      "spinach",
+      "bread"
+    ],
+    "trap": "bread"
+  },
+  {
+    "id": "keto-rice",
+    "diets": [
+      "Keto"
+    ],
+    "ingredients": [
+      "chicken thighs",
+      "rice",
+      "broccoli",
+      "garlic"
+    ],
+    "trap": "rice"
+  },
+  {
+    "id": "keto-potatoes",
+    "diets": [
+      "Keto"
+    ],
+    "ingredients": [
+      "salmon",
+      "potatoes",
+      "asparagus",
+      "butter"
+    ],
+    "trap": "potatoes"
+  },
+  {
+    "id": "keto-tortillas",
+    "diets": [
+      "Keto"
+    ],
+    "ingredients": [
+      "ground beef",
+      "tortillas",
+      "cheese",
+      "lettuce",
+      "tomato"
+    ],
+    "trap": "tortillas"
+  },
+  {
+    "id": "lowcarb-potatoes",
+    "diets": [
+      "Low-Carb"
+    ],
+    "ingredients": [
+      "pork chops",
+      "apples",
+      "potatoes",
+      "onion"
+    ],
+    "trap": "potatoes"
+  },
+  {
+    "id": "lowcarb-pasta",
+    "diets": [
+      "Low-Carb"
+    ],
+    "ingredients": [
+      "shrimp",
+      "zucchini",
+      "garlic",
+      "pasta",
+      "lemon"
+    ],
+    "trap": "pasta"
+  },
+  {
+    "id": "lowcarb-bread",
+    "diets": [
+      "Low-Carb"
+    ],
+    "ingredients": [
+      "turkey",
+      "lettuce",
+      "tomato",
+      "bread",
+      "mayonnaise"
+    ],
+    "trap": "bread"
+  },
+  {
+    "id": "paleo-beans-rice",
+    "diets": [
+      "Paleo"
+    ],
+    "ingredients": [
+      "chicken breast",
+      "sweet potato",
+      "black beans",
+      "rice"
+    ],
+    "trap": "beans, rice"
+  },
+  {
+    "id": "paleo-peanuts-soy",
+    "diets": [
+      "Paleo"
+    ],
+    "ingredients": [
+      "beef",
+      "peanuts",
+      "soy sauce",
+      "broccoli"
+    ],
+    "trap": "peanuts, soy sauce"
+  },
+  {
+    "id": "paleo-cheese",
+    "diets": [
+      "Paleo"
+    ],
+    "ingredients": [
+      "eggs",
+      "cheese",
+      "spinach",
+      "mushrooms"
+    ],
+    "trap": "cheese"
+  },
+  {
+    "id": "vegan-glutenfree",
+    "diets": [
+      "Vegan",
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "tofu",
+      "noodles",
+      "soy sauce",
+      "peanut butter",
+      "lime"
+    ],
+    "trap": "noodles, soy sauce"
+  },
+  {
+    "id": "glutenfree-dairyfree",
+    "diets": [
+      "Gluten-Free",
+      "Dairy-Free"
+    ],
+    "ingredients": [
+      "chicken breast",
+      "cream",
+      "pasta",
+      "mushrooms"
+    ],
+    "trap": "cream, pasta"
+  },
+  {
+    "id": "hidden-vegan-pesto",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "pasta",
+      "pesto",
+      "cherry tomatoes",
+      "pine nuts"
+    ],
+    "trap": "pesto (parmesan)"
+  },
+  {
+    "id": "hidden-vegetarian-caesar",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "romaine lettuce",
+      "caesar dressing",
+      "croutons",
+      "chickpeas"
+    ],
+    "trap": "caesar dressing (anchovy)"
+  },
+  {
+    "id": "hidden-glutenfree-stockcube",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "chicken breast",
+      "stock cube",
+      "carrots",
+      "potatoes"
+    ],
+    "trap": "stock cube (wheat)"
+  },
+  {
+    "id": "hidden-vegetarian-marshmallow",
+    "diets": [
+      "Vegetarian"
+    ],
+    "ingredients": [
+      "marshmallows",
+      "dark chocolate",
+      "strawberries",
+      "cream"
+    ],
+    "trap": "marshmallows (gelatin)"
+  },
+  {
+    "id": "hidden-glutenfree-naan",
+    "diets": [
+      "Gluten-Free"
+    ],
+    "ingredients": [
+      "chickpeas",
+      "naan",
+      "spinach",
+      "curry paste"
+    ],
+    "trap": "naan (wheat)"
+  },
+  {
+    "id": "hidden-vegan-kimchi",
+    "diets": [
+      "Vegan"
+    ],
+    "ingredients": [
+      "kimchi",
+      "tofu",
+      "rice",
+      "spring onion"
+    ],
+    "trap": "kimchi (fish sauce)"
+  }
+]

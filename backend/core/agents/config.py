@@ -80,6 +80,8 @@ TASKS: dict[str, dict] = {
             "Main ingredients must come from the user's list or common pantry staples "
             "(salt, pepper, oil, water, basic spices). Replace or leave out what the user does not have.",
             "Respect every dietary requirement strictly; replace ingredients that break it.",
+            "Never use ingredients listed under MUST NOT USE, even though the user has them. Use the "
+            "suggested substitute instead (it may be something the user still has to buy).",
             "Scale amounts to the requested portions and aim for the target cooking time.",
             "You may rename the dish to reflect your changes. The name must match the ingredients "
             '(no "Chicken ..." without chicken).',
@@ -101,6 +103,8 @@ TASKS: dict[str, dict] = {
             "(use the English search terms given).",
             "Common pantry staples (salt, pepper, oil, water, basic spices) may be assumed.",
             "Respect every dietary requirement strictly.",
+            "Never use ingredients listed under MUST NOT USE, even though the user has them. Use the "
+            "suggested substitute instead.",
             "Scale amounts to the requested portions and aim for the target cooking time.",
             *INSTRUCTION_RULES,
         ],
@@ -160,6 +164,8 @@ TASKS["check_diets"] = {
         "Report an issue only under the diet it really breaks by the definition above.",
         "Look for hidden problems too: Worcestershire sauce contains anchovy, regular soy sauce and most "
         "stock cubes contain wheat, gelatin is animal-based, honey is not vegan, butter and ghee are dairy. "
+        "Ready-made products count by what they usually contain (pesto has parmesan, kimchi has fish sauce, "
+        "marshmallows have gelatin, naan has wheat) unless the recipe names a compliant version (\"vegan pesto\"). "
         "Ignore animal rennet in cheese.",
         "Only report clear violations. If an ingredient is fine or you are unsure, do not report it.",
         "Ignore taste, style and missing ingredients.",

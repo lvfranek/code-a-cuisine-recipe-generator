@@ -137,7 +137,8 @@ def _feedback_context(state: RecipeState) -> str:
     lines = "\n".join(f"- {f}" for f in feedback)
     return (
         "\n\nIMPORTANT: your previous recipes had these problems. Fix them and return ALL recipes again "
-        f"(keep recipes without problems as they were):\n{lines}"
+        "(keep recipes without problems as they were). Remove or replace every ingredient named below, "
+        f"also in the recipe name and the steps:\n{lines}"
     )
 
 
@@ -220,16 +221,20 @@ def extra_ingredients(lines: list[str], user_terms: list[str]) -> list[str]:
     return extras
 
 
+def _lines_to_check(recipe, diet: str) -> list[str]:
+    """Ingredients, plus the name for Vegan/Vegetarian: "Chicken Sandwich" must not be
+    served as vegetarian, but "Pasta" in a gluten-free pasta dish is fine."""
+    return [recipe.name, *recipe.ingredients] if diet in ("Vegan", "Vegetarian") else list(recipe.ingredients)
+
+
 def check_rules(result: RecipesResponse, required: list[str], user_terms: list[str]) -> DietReport:
     """Code rules: required diets, wrongly claimed diet tags, too many extra ingredients."""
     report = DietReport()
     for i, recipe in enumerate(result.recipes, start=1):
-        # The name counts too: "Chicken Sandwich" must not be served as vegetarian.
-        lines = [recipe.name, *recipe.ingredients]
         for diet in required:
-            for v in diet_rules.violations(lines, diet):
+            for v in diet_rules.violations(_lines_to_check(recipe, diet), diet):
                 report.add(i, diet, f"breaks {diet}: {v}")
-        wrong = {t for t in recipe.dietTags if t in DIET_VALUES and diet_rules.violations(lines, t)}
+        wrong = {t for t in recipe.dietTags if t in DIET_VALUES and diet_rules.violations(_lines_to_check(recipe, t), t)}
         if wrong:
             report.wrong_tags[i] = wrong
         extras = extra_ingredients(recipe.ingredients, user_terms)
@@ -316,7 +321,9 @@ async def final(state: RecipeState) -> dict:
     report = state.get("diet_report") or DietReport()
     nutrition = state.get("nutrition") or {}
 
-    recipes = []
+    required = set(diets(state["request"]))
+
+    checked = []
     for i, recipe in enumerate(result.recipes, start=1):
         update: dict = {"nutritionSource": "estimate"}
         calc = nutrition.get(i)
@@ -326,7 +333,15 @@ async def final(state: RecipeState) -> dict:
         broken = report.wrong_tags.get(i, set()) | {kind for kind, _ in report.problems.get(i, []) if kind in DIET_VALUES}
         if broken:
             update["dietTags"] = [t for t in recipe.dietTags if t not in broken]
-        recipes.append(recipe.model_copy(update=update))
+        checked.append((recipe.model_copy(update=update), bool(broken & required)))
+
+    # Last safeguard: drop recipes that still break a REQUIRED diet, as long as at
+    # least one compliant recipe is left (better 2 good recipes than 3 with one wrong).
+    compliant = [r for r, breaks in checked if not breaks]
+    if compliant and len(compliant) < len(checked):
+        log.info("Dropped %d recipe(s) that still break %s", len(checked) - len(compliant), sorted(required))
+    kept = compliant or [r for r, _ in checked]
+    recipes = [r.model_copy(update={"id": n}) for n, r in enumerate(kept, start=1)]
     return {"final_result": RecipesResponse(recipes=recipes)}
 
 
@@ -341,40 +356,44 @@ def route_after_retriever(state: RecipeState) -> str:
     return "chef_agent" if state.get("candidates") else "fallback_chef"
 
 
-def route_after_chef(state: RecipeState):
-    if state.get("result") and state.get("chef") == "chef_agent":
-        return QUALITY
-    return "fallback_chef"
-
-
-def route_after_fallback(state: RecipeState):
-    return QUALITY if state.get("result") else "final"
-
-
 def route_after_review(state: RecipeState) -> str:
     return state.get("chef", "chef_agent") if state.get("feedback") else "final"
 
 
-def build_graph():
+def build_graph(with_diet_checker: bool = True):
+    """The recipe workflow. `with_diet_checker=False` is only used by the evaluation
+    (eval/run.py) to measure what the diet checker is worth."""
+    quality = QUALITY if with_diet_checker else ["nutrition_agent"]
+
+    def route_after_chef(state: RecipeState):
+        if state.get("result") and state.get("chef") == "chef_agent":
+            return quality
+        return "fallback_chef"
+
+    def route_after_fallback(state: RecipeState):
+        return quality if state.get("result") else "final"
+
     graph = StateGraph(RecipeState)
-    for name, fn in [
+    nodes = [
         ("input_agent", input_agent),
         ("retriever", retriever),
         ("chef_agent", chef_agent),
         ("fallback_chef", fallback_chef),
-        ("diet_checker", diet_checker),
         ("nutrition_agent", nutrition_agent),
         ("review", review),
         ("final", final),
-    ]:
+    ]
+    if with_diet_checker:
+        nodes.append(("diet_checker", diet_checker))
+    for name, fn in nodes:
         graph.add_node(name, fn)
 
     graph.add_edge(START, "input_agent")
     graph.add_edge("input_agent", "retriever")
     graph.add_conditional_edges("retriever", route_after_retriever, ["chef_agent", "fallback_chef"])
-    graph.add_conditional_edges("chef_agent", route_after_chef, [*QUALITY, "fallback_chef"])
-    graph.add_conditional_edges("fallback_chef", route_after_fallback, [*QUALITY, "final"])
-    graph.add_edge(QUALITY, "review")  # waits for both parallel nodes
+    graph.add_conditional_edges("chef_agent", route_after_chef, [*quality, "fallback_chef"])
+    graph.add_conditional_edges("fallback_chef", route_after_fallback, [*quality, "final"])
+    graph.add_edge(quality, "review")  # waits for all parallel quality nodes
     graph.add_conditional_edges("review", route_after_review, ["chef_agent", "fallback_chef", "final"])
     graph.add_edge("final", END)
     return graph.compile()

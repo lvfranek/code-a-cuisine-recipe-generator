@@ -168,7 +168,7 @@ def test_critic_problem_sends_recipes_back(monkeypatch):
     assert state["revisions"] == 1
 
 
-def test_gives_up_after_two_revisions_and_removes_the_tag(monkeypatch):
+def test_gives_up_after_two_revisions_and_drops_the_bad_recipe(monkeypatch):
     bad = answer(recipe("A", "wb-1", ingredients=("2 potatoes", "1 tbsp honey")), recipe("B", "wb-2"), recipe("C", "wb-3"))
     calls = fake_llm(monkeypatch, adapt=(bad,))
     fake_search(monkeypatch)
@@ -178,8 +178,20 @@ def test_gives_up_after_two_revisions_and_removes_the_tag(monkeypatch):
     assert calls.count("adapt") == 3  # first try + 2 revisions
     assert state["revisions"] == 2
     recipes = state["final_result"].recipes
-    assert "Vegan" not in recipes[0].dietTags  # never claim a diet we know is broken
-    assert "Vegan" in recipes[1].dietTags
+    assert [r.name for r in recipes] == ["B", "C"]  # honey recipe never reaches a vegan user
+    assert [r.id for r in recipes] == [1, 2]
+
+
+def test_if_every_recipe_breaks_the_diet_they_are_kept_without_the_tag(monkeypatch):
+    honey = ("2 potatoes", "1 tbsp honey")
+    bad = answer(recipe("A", "wb-1", ingredients=honey), recipe("B", "wb-2", ingredients=honey), recipe("C", "wb-3", ingredients=honey))
+    fake_llm(monkeypatch, adapt=(bad,))
+    fake_search(monkeypatch)
+
+    recipes = run()["final_result"].recipes
+
+    assert len(recipes) == 3
+    assert all("Vegan" not in r.dietTags for r in recipes)  # never claim a diet we know is broken
 
 
 def test_wrongly_claimed_tag_is_removed_without_revision(monkeypatch):
@@ -346,3 +358,16 @@ def test_misleading_name_breaks_the_diet_too(monkeypatch):
 
     assert calls.count("adapt") == 2  # sent back to the chef
     assert state["final_result"].recipes[0].name == "A"
+
+
+def test_graph_without_diet_checker_for_the_evaluation(monkeypatch):
+    bad = answer(recipe("A", "wb-1", ingredients=("2 potatoes", "2 eggs")), recipe("B", "wb-2"), recipe("C", "wb-3"))
+    calls = fake_llm(monkeypatch, adapt=(bad,))
+    fake_search(monkeypatch)
+    plain = graph.build_graph(with_diet_checker=False)
+
+    state = asyncio.run(plain.ainvoke({"request": REQUEST, "errors": [], "steps": []}))
+
+    assert "diet_checker" not in state["steps"] and "critic" not in calls
+    assert calls.count("adapt") == 1  # no revision without the checker
+    assert "2 eggs" in state["final_result"].recipes[0].ingredients

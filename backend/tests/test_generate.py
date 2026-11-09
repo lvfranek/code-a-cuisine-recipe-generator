@@ -155,3 +155,10 @@ def test_basics_fill_up_when_dishes_are_rare(monkeypatch):
     monkeypatch.setattr(generate, "search_recipes", lambda names, filters, k: basics + HITS[:1])
     picked = retrieve_candidates(REQUEST)
     assert [h.record.itemId for h in picked] == ["wb-1", "wb-s"]
+
+
+def test_request_context_lists_forbidden_user_ingredients():
+    req = GenerateRequest.model_validate({"ingredients": [{"name": "tofu"}, {"name": "honey"}], "dietPreferences": ["Vegan"]})
+    ctx = request_context(req)
+    assert "MUST NOT USE" in ctx and '"honey" breaks Vegan' in ctx
+    assert "MUST NOT USE" not in request_context(REQUEST.model_copy(update={"ingredients": REQUEST.ingredients[:1]}))

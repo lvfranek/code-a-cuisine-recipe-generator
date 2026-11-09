@@ -45,3 +45,6 @@ backend/data/*.backup-*
 
 backend/data/chroma/
 backend/data/chroma.backup-*/
+
+# Evaluation: keep summaries and the latest raw run, not every raw run
+backend/eval/results/*-v*.json

@@ -10,6 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, create_model, model_validator
 
+from core import diet_rules
 from core.retrieval import SearchFilters, SearchHit, search_recipes
 from core.schemas import BasedOn, GenerateRequest, Recipe, RecipeDraft, RecipeDrafts, RecipesResponse
 
@@ -72,7 +73,16 @@ def request_context(req: GenerateRequest) -> str:
         f"Target cooking time: {TIME_HINT.get(req.cookingTime, TIME_HINT['medium'])}",
         f"Preferred cuisines: {', '.join(c)}" if c else "Cuisine: chef's choice",
         f"Dietary requirements (must respect all): {', '.join(d)}" if d else "Dietary requirements: none",
+        *_conflict_lines(req, d),
     ])
+
+
+def _conflict_lines(req: GenerateRequest, required: list[str]) -> list[str]:
+    """Tell the chef up front which of the user's ingredients break the diet."""
+    found = diet_rules.conflicts([i.name for i in req.ingredients], required)
+    if not found:
+        return []
+    return ["", "MUST NOT USE (these ingredients of the user break the required diet):", *(f"- {c}" for c in found)]
 
 
 def example_json(portions: int, based_on_id: str | None = None) -> str:
