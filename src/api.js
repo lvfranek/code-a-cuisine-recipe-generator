@@ -1,10 +1,8 @@
-// Calls the recipe backend.
-// - VITE_API_URL set (e.g. https://cuisine-api.franekkaminski.dev): the Python
-//   backend's /generate/stream, which reports live progress of the AI agents.
-// - VITE_API_URL empty: the old Vercel function at /api/generate (no progress).
+// Calls the Python backend (FastAPI). VITE_API_URL points to it,
+// e.g. https://cuisine-api.franekkaminski.dev in production.
 import { parseSSE } from "./sse";
 
-const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 const HEADERS = {
   "Content-Type": "application/json",
@@ -19,9 +17,6 @@ async function errorFrom(res) {
   return new Error(body.error || body.detail || `Request failed (${res.status})`);
 }
 
-// Fridge photos need the Python backend (the old Vercel function cannot do it).
-export const photoSupported = Boolean(API_URL);
-
 // Sends a (resized) photo, returns { ingredients: [{ name, quantity, unit }], message? }.
 export async function detectIngredients(imageBlob) {
   const res = await fetch(`${API_URL}/detect-ingredients`, {
@@ -33,38 +28,15 @@ export async function detectIngredients(imageBlob) {
   return res.json();
 }
 
-async function generateLegacy(payload) {
-  const res = await fetch("/api/generate", {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw await errorFrom(res);
-  return res.json();
-}
-
-async function generatePlain(payload) {
-  const res = await fetch(`${API_URL}/generate`, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw await errorFrom(res);
-  return res.json();
-}
-
 // onProgress receives { event: "step" | "revision", data } while the agents work.
 export async function generateRecipes(payload, { onProgress } = {}) {
-  if (!API_URL) return generateLegacy(payload);
-
   const res = await fetch(`${API_URL}/generate/stream`, {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(payload),
   });
-  // Older backend without streaming: use the plain JSON endpoint instead.
-  if (res.status === 404 || !res.body) return generatePlain(payload);
   if (!res.ok) throw await errorFrom(res);
+  if (!res.body) throw new Error("Your browser does not support streaming responses.");
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

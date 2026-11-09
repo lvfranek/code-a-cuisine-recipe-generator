@@ -102,7 +102,7 @@ class MemoryRateLimiter(_Limits):
 
 
 class RedisRateLimiter(_Limits):
-    """Fixed-window counters via INCR/EXPIRE (same keys as the old Upstash version)."""
+    """Fixed-window counters via INCR/EXPIRE."""
 
     def __init__(self, redis, per_ip_daily: int, per_ip_burst: int, global_daily: int, prefix: str = "gen"):
         super().__init__(per_ip_daily, per_ip_burst, global_daily)

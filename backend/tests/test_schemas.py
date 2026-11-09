@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from core.schemas import GenerateRequest, Recipe, RecipesResponse
 
-# Same shape that api/generate.js sends to the frontend today.
+# The shape the frontend renders.
 FRONTEND_EXAMPLE = {
     "recipes": [
         {
@@ -47,7 +47,7 @@ def test_negative_nutrition_is_rejected():
         )
 
 
-# ---------------- GenerateRequest (port of lib/validate.js) ----------------
+# ---------------- GenerateRequest ----------------
 
 
 def test_request_is_cleaned_like_js():

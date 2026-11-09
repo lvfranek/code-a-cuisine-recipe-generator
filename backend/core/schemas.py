@@ -2,11 +2,10 @@
 
 Defined once here and reused everywhere (API, LLM validation, ingest, MCP).
 
-- Request side: `GenerateRequest` cleans and limits user input the same way
-  `lib/validate.js` does (lenient: bad values fall back to defaults).
-- Response side: `Recipe` matches what `api/generate.js` returns today, so the
-  frontend (RecipeCard, ResultsPage, Recipe Book) keeps working unchanged.
-  New optional fields may be added later; existing ones must not change.
+- Request side: `GenerateRequest` cleans and limits user input
+  (lenient: bad values fall back to defaults).
+- Response side: `Recipe` is the shape the frontend (RecipeCard, ResultsPage,
+  Recipe Book) renders. New optional fields may be added; existing ones must not change.
 """
 
 import math

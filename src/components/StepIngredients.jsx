@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { detectIngredients, photoSupported } from '../api';
+import { detectIngredients } from '../api';
 import { resizeImage } from '../imageResize';
 
 const UNITS = ['g', 'ml', 'oz', 'pcs', 'tsp', 'tbsp', 'cup'];
@@ -212,36 +212,34 @@ export default function StepIngredients({ ingredients, setIngredients, onNext })
           </div>
         </div>
 
-        {/* Fridge photo — needs the Python backend */}
-        {photoSupported && (
-          <div className="photo-scan">
-            <p className="photo-scan-divider"><span>or</span></p>
-            <label className={`btn btn--ghost photo-scan-btn${scanning || atLimit ? ' is-disabled' : ''}`}>
-              <input
-                type="file"
-                accept="image/*"
-                className="visually-hidden"
-                onChange={handlePhoto}
-                disabled={scanning || atLimit}
+        {/* Fridge photo */}
+        <div className="photo-scan">
+          <p className="photo-scan-divider"><span>or</span></p>
+          <label className={`btn btn--ghost photo-scan-btn${scanning || atLimit ? ' is-disabled' : ''}`}>
+            <input
+              type="file"
+              accept="image/*"
+              className="visually-hidden"
+              onChange={handlePhoto}
+              disabled={scanning || atLimit}
+            />
+            <svg className="photo-scan-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 8h3l2-3h6l2 3h3v11H4z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
               />
-              <svg className="photo-scan-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M4 8h3l2-3h6l2 3h3v11H4z"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-                <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-              {scanning ? 'Looking at your photo…' : 'Scan a photo of your fridge'}
-            </label>
-            <p className="photo-scan-hint">
-              The photo is sent to our AI only to find ingredients and is never stored.
-            </p>
-            {photoMsg && <p className="photo-scan-result" role="status">{photoMsg}</p>}
-            {photoError && <p className="step-error" role="alert">{photoError}</p>}
-          </div>
-        )}
+              <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+            {scanning ? 'Looking at your photo…' : 'Scan a photo of your fridge'}
+          </label>
+          <p className="photo-scan-hint">
+            The photo is sent to our AI only to find ingredients and is never stored.
+          </p>
+          {photoMsg && <p className="photo-scan-result" role="status">{photoMsg}</p>}
+          {photoError && <p className="step-error" role="alert">{photoError}</p>}
+        </div>
 
         {/* Ingredient list */}
         {ingredientCount > 0 && (
